@@ -1,0 +1,24 @@
+# Secrets & credentials — never commit
+.env
+.env.*
+*.pem
+*.key
+*credentials*
+*secret*
+.aws/
+aws-exports.txt
+
+# Local SSH / lab notes that may contain IPs/keys
+local/
+notes.local.md
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# OpenSCAP large generated files (commit a short summary instead if huge)
+# Uncomment if reports are large:
+# docs/scap-report.html
+# docs/scap-results.xml
