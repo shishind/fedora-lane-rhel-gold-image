@@ -1,86 +1,157 @@
-# Fedora Lane — RHEL Gold Image (Server/Cloud OS TDP)
+# Fedora Lane — RHEL 10 Gold Image (Server/Cloud OS TDP)
 
-**Role:** Junior Consultant (FASTER)  
-**Geo:** APAC — Part 1 ~**19 Oct**, Part 2 **22/23 Oct** (check your POD)  
-**Cloud:** AWS (manual gold image → AMI → EC2 proof)
+**Audience:** Fedora Lane stakeholders (Casey Novak, Alex Lee, Ren Tanaka) and Red Hat consultants reproducing this lab.  
+**Goal:** A secure, standardized **Red Hat Enterprise Linux 10** gold image for the e-commerce **web server** fleet on AWS (Azure stretch).
 
-Private deliverable repo. **Never commit secrets.** Add collaborator **`mflaim-eng`**.
-
----
-
-## Start here (Mac + AWS)
-
-Read in order:
-
-1. **[docs/04-easy-aws-ec2-ami.md](docs/04-easy-aws-ec2-ami.md)** ← **beginner copy/paste path (start here)**
-2. **[docs/03-apac-mac-aws-why-guide.md](docs/03-apac-mac-aws-why-guide.md)** ← detailed steps **and why**
-2. [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md) — customer challenges → value
-3. [docs/solution-overview.md](docs/solution-overview.md) — client-facing solution write-up
-4. [docs/02-aws-build-commands.md](docs/02-aws-build-commands.md) — extra command reference
-5. [docs/presentation-outline.md](docs/presentation-outline.md) — 15-min talk track
-
-Helper scripts (run **on the EC2 builder**):
-
-- `scripts/10-users-ssh-firewall.sh` — admins, SSH :2222, firewall
-- `scripts/20-httpd-container.sh` — Podman httpd :35443 + systemd
-- `verify/verify.sh` — post-boot checklist
+This repository is the **source of truth** for the Junior Consultant deliverable: blueprint, docs, verify scripts, and presentation materials.  
+**Never commit credentials**, RHDP/AWS keys, private SSH keys, or passwords.
 
 ---
 
-## What we are solving (short)
+## What we built (one sentence)
 
-| Challenge | Solution in this AMI |
-|-----------|----------------------|
-| Inconsistent OS / drift / failed patching | One hardened **RHEL** standard for web nodes |
-| Untraceable admin changes | Named admins, no root/password SSH, sudo always prompts |
-| Ops can’t run containers safely | **httpd in Podman**, managed via **systemd** |
+A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as an **AWS AMI**, and proven on a live EC2 instance with hardened SSH, SELinux, separate filesystems, and **httpd in a Podman container**.
 
 ---
 
-## Repo setup (Mac)
+## Fedora Lane challenges → this solution
 
-```bash
-brew install awscli gh git
-cd ~/Projects/fedora-lane-rhel-gold-image
+| Challenge | What the gold image does |
+|-----------|---------------------------|
+| **Inconsistent servers** (mixed OS, drift, failed mass patching) | One **RHEL 10** AMI — identical layout and services every launch |
+| **Untraceable admin changes** (long MTTR) | Named `fladmins`, no root/password SSH, sudo always asks for a password; known-good baseline |
+| **Container skills gap** | **httpd** runs in Podman on port **35443**, managed as a **systemd** service |
 
-gh auth login
-# after local commit:
-gh repo create fedora-lane-rhel-gold-image --private --source=. --remote=origin --push
-gh api repos/$(gh api user -q .login)/fedora-lane-rhel-gold-image/collaborators/mflaim-eng -X PUT -f permission=pull
-```
+Full narrative: [docs/solution-overview.md](docs/solution-overview.md)  
+Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)
 
 ---
 
-## Build path (summary)
+## Repository layout
 
 ```text
-Mac → launch RHEL EC2 builder → harden by hand → create AMI
-    → launch NEW EC2 from AMI → verify/verify.sh → demo
+README.md                          ← you are here
+image-builder/
+  fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
+  08-rhel10-rebuild.md             ← how to compose on a RHEL 10 host
+  README.md                        ← Image Builder notes
+docs/
+  solution-overview.md             ← client-facing architecture + why
+  presentation-outline.md          ← 15-minute talk track
+  Fedora-Lane-RHEL-Gold-Image-FASTER.pdf
+  07-rhel10-web-console-demo.md    ← optional day-2 Web Console demo (RHDP)
+verify/verify.sh                   ← post-boot proof checklist
+scripts/                           ← optional hardening helpers (EC2 path)
 ```
 
-Full why + commands: **docs/03-apac-mac-aws-why-guide.md**
+---
+
+## Spec checklist (Expansion Pack)
+
+- [x] Local Image Builder (not **hosted** Image Builder service)
+- [x] Base: **RHEL 10** (`distro = "rhel-10"` in TOML — confirm exact id with `composer-cli distros list` / `image-builder list`)
+- [x] Deployable on **AWS** (AMI → EC2); Azure VHD = stretch
+- [x] httpd + index page; **container preferred** on port **35443**
+- [x] Separate mounts `<5 GiB`: `/var/log`, `/home`, `/tmp`, `/var/tmp`
+- [x] SELinux **enforcing**; `/tmp` **noexec**
+- [x] SSH **2222**; no root SSH; no password SSH
+- [x] Admin users + `fladmins` + sudo **with** password
+- [x] Firewall: only SSH + httpd ports
+- [x] Survives reboot; services enabled at boot
+
+Lab sudo password (demo only): see comment in `image-builder/fedora-lane-gold.toml`  
+SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
 
 ---
 
-## Spec checklist
+## How to build and run (consultant / reproducers)
 
-- [ ] Manual gold image (no hosted Image Builder)
-- [ ] AWS AMI → EC2
-- [ ] httpd + index (container preferred) on **35443**
-- [ ] Separate mounts `/var/log` `/home` `/tmp` `/var/tmp` (&lt; 5 GiB)
-- [ ] SELinux enforcing; `/tmp` noexec
-- [ ] SSH **2222**; no root SSH; no password SSH
-- [ ] `fladmins` + sudo password required
-- [ ] Firewall: only SSH + httpd
-- [ ] Survives reboot
-- [ ] Stretch: OpenSCAP / second cloud
+### Prerequisites
+
+1. A **RHEL 10** machine with local Image Builder (`image-builder` / `osbuild-composer` + `weldr-client`) — not macOS.  
+2. AWS sandbox/OPEN credentials (never commit them).  
+3. Network access to Red Hat repos on the builder host.
+
+### Build (high level)
+
+```bash
+# On RHEL 10 builder
+composer-cli distros list          # confirm rhel-10 / rhel-10.x name
+# Edit image-builder/fedora-lane-gold.toml distro= if needed to match EXACTLY
+
+composer-cli blueprints push image-builder/fedora-lane-gold.toml
+composer-cli blueprints depsolve fedora-lane-gold
+composer-cli compose start fedora-lane-gold ami
+composer-cli compose status
+composer-cli compose image <UUID>
+```
+
+If Cockpit Image Builder only lists qcow2/ova/vmdk/iso: that is normal for local UI. Prefer CLI `ami`, **or** build `.qcow2` → convert to raw → AWS import (see [image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)).
+
+### Publish to AWS + prove
+
+1. Upload disk to S3 → `import-snapshot` (needs `vmimport` role) → `register-image` → AMI.  
+2. Launch EC2; security group: **2222** and **35443** from your IP.  
+3. Wait for first-boot (Podman pull), then:
+
+```bash
+ssh -i <your-lab-key> -p 2222 fladmin1@<PUBLIC_IP>
+sudo bash verify/verify.sh
+curl -s http://127.0.0.1:35443/
+cat /etc/redhat-release    # expect RHEL 10.x
+sudo reboot                # re-check after reboot
+```
+
+Detailed AWS notes: [docs/04-easy-aws-ec2-ami.md](docs/04-easy-aws-ec2-ami.md)
 
 ---
 
-## Part 1 / Part 2
+## Live walkthrough (end-user view)
 
-| Step | When (APAC) | Action |
-|------|-------------|--------|
-| Part 1 | ~19 Oct | RHSH recording + form (Server/Cloud OS TDP) + this repo URL |
-| Part 2 | 22 or 23 Oct | Live 15-min demo; SMEs as Casey / Alex |
-| Follow-up | &lt; 2 days after live | Email SMEs; CC Pod Host, Manager, faster@redhat.com |
+From the customer’s perspective (Casey / Alex):
+
+1. New web server = launch from the **gold AMI** (no snowflake install).  
+2. Admins connect with keys on **2222** as named users.  
+3. Site answers on **35443**; container is a systemd service.  
+4. Security baseline is already on: SELinux, firewall, partitions, sudo policy.
+
+Optional day-2 GUI story (Web Console / Session Recording): [docs/07-rhel10-web-console-demo.md](docs/07-rhel10-web-console-demo.md) on RHDP **RHEL 10 Base** (gold AMI firewall still only 2222+35443 per brief).
+
+---
+
+## 15-minute presentation
+
+| Block | Time | Content |
+|-------|------|---------|
+| Opening | 1–2 min | Team + restate 3 challenges |
+| Live walkthrough | 5–10 min | EC2 from AMI — verify controls |
+| Value summary | 2–5 min | Map features → challenges |
+| Closing | 1–2 min | Pilot staging + Session Recording next |
+
+Talk track: [docs/presentation-outline.md](docs/presentation-outline.md)  
+Slides PDF: [docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pdf](docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pdf)
+
+---
+
+## Recommended next step (for Fedora Lane)
+
+1. Pilot this **RHEL 10** gold AMI on **staging** web nodes.  
+2. Enable **Session Recording / Web Console** for production admin access.  
+3. Automate rebuilds + Red Hat Insights at fleet scale.  
+4. Stretch: Azure image from the **same** TOML.
+
+---
+
+## Publishing this repository (FASTER)
+
+**Preferred (Core Pack):** Consulting **GitLab** — cohort sub-group under the FASTER group.
+
+```bash
+cd ~/Projects/fedora-lane-rhel-gold-image
+git remote add origin <YOUR_FASTER_GITLAB_REPO_URL>
+git push -u origin main
+```
+
+**Alternate (Expansion Pack):** private GitHub + add `mflaim-eng` for review.
+
+Do **not** push `.pem`, `.aws/`, RHDP passwords, or raw disk images.

@@ -1,68 +1,90 @@
-# Solution Overview — Fedora Lane RHEL Gold Image (AWS)
+# Solution Overview — Fedora Lane RHEL 10 Gold Image
 
 ## Purpose
 
-Design and demonstrate a **secure, standardized Red Hat Enterprise Linux gold AMI** for Fedora Lane’s e-commerce web server fleet on **Amazon Web Services**. The image is built **manually** (not via hosted Image Builder), uploaded/registered in AWS, and proven on a freshly launched EC2 instance.
+Deliver a **secure, standardized Red Hat Enterprise Linux 10 gold image** for Fedora Lane’s e-commerce **web server** fleet.
 
-## Problems addressed
+The standard is defined as a **local Image Builder blueprint** ([image-builder/fedora-lane-gold.toml](../image-builder/fedora-lane-gold.toml)) with:
+
+```toml
+distro = "rhel-10"
+```
+
+It is composed on a **RHEL 10** builder host (**not** the hosted Image Builder cloud service), published as an **AWS AMI**, and proven on a live EC2 instance.
+
+## Customer challenges addressed
 
 ### 1. Inconsistent server environment
 
-Fedora Lane runs ~1,600 servers across Rocky, Ubuntu, CentOS Stream, and Amazon Linux. Regional autonomy caused configuration drift; a critical patch failed on 600+ hosts and breached the 30-day remediation policy.
+Fedora Lane operates ~1,600 Linux servers with mixed distributions (Rocky, Ubuntu, CentOS Stream, Amazon Linux). Drift and incompatible baselines caused a critical patch to fail on 600+ hosts and miss the 30-day remediation window.
 
-**Our approach:** One RHEL gold AMI with a fixed disk layout, SELinux enforcing, firewall policy, SSH/httpd ports, admin model, and containerized web tier. Every new web server boots identical.
+**Solution:** One **RHEL 10** AMI with fixed partitions, packages, SELinux, firewall, SSH, and web service. Every new web node boots the same way.
 
-### 2. Untraceable administrative changes / long outages
+### 2. Untraceable administrative changes / extended outages
 
-Undocumented interactive changes extend MTTR and hide accountability.
+Undocumented interactive changes inflated MTTR and hid accountability.
 
-**Our approach:** Harden access (no root SSH, no password SSH, sudo always requires a password, named admin accounts in `fladmins`). The gold image is a known-good baseline; deviations are easier to detect. Recommend RHEL Session Recording / Web Console as the next operational control.
+**Solution:** Named accounts in `fladmins`, key-only SSH on port **2222**, root login disabled, password SSH disabled, sudo always requires a password. The AMI is a known-good baseline. **Next phase:** RHEL Session Recording + Web Console for session review.
 
-### 3. Operational skills gap for containers
+### 3. Operational skills gap for container workloads
 
-Ops receives brittle `podman run` one-liners from developers and struggles to inspect/troubleshoot.
+Operations received brittle `podman run` one-liners and struggled to manage containers.
 
-**Our approach:** Ship **httpd in Podman** on port **35443**, managed as `container-fl-httpd.service`. Operators start/stop/status a systemd unit instead of copying long CLI strings.
+**Solution:** **httpd** runs in **Podman** on port **35443**, managed via **systemd** (`container-fl-httpd.service`). Ops start/stop/status a service instead of pasting long CLI strings.
 
 ## High-level architecture
 
 ```text
-[ Gold build VM ] --manual harden--> [ AWS AMI ]
-                                         |
-                                         v
-                              [ EC2 web instance ]
-                               |              |
-                          SSH :2222      httpd container :35443
-                          (key-only)     (Podman + systemd)
-                               |
-                          fladmin* + sudo (password)
+[ TOML blueprint: distro=rhel-10 ]
+              |
+              v
+[ Local Image Builder on RHEL 10 host ]
+              |
+              v
+[ Gold disk (.raw / .qcow2) ]
+              |
+              v
+[ AWS: S3 → import snapshot → register AMI ]
+              |
+              v
+[ EC2 web node from AMI ]
+     |                    |
+ SSH :2222            httpd container :35443
+ (fladmin*, keys)     (Podman + systemd)
+     |
+  sudo (password)
 ```
 
-## Technical controls (spec checklist)
+## Technical controls
 
-| Requirement | Implementation |
+| Requirement | How we meet it |
 |-------------|----------------|
-| Manual gold image | Configure VM by hand; `create-image` or import-snapshot |
-| AWS deployable | AMI launched in RHDP AWS Blank OPEN / account |
-| httpd + index page | Podman httpd; `/opt/fedora-lane/www/index.html` |
-| Separate partitions | `/var/log`, `/home`, `/tmp`, `/var/tmp` (< 5 GiB each) |
-| SELinux enforcing | `/etc/selinux/config` + runtime Enforcing |
-| `/tmp` noexec | fstab mount options |
-| httpd port 35443 | publish + `semanage port` `http_port_t` |
-| SSH port 2222 | sshd drop-in + `semanage port` `ssh_port_t` |
-| Admin users/group/sudo | `fladmins`, sudoers without NOPASSWD |
-| No root SSH | `PermitRootLogin no` |
-| No SSH passwords | `PasswordAuthentication no` |
-| Firewall lockdown | Only 2222/tcp and 35443/tcp |
-| Survive reboot | systemd enabled units; verify after reboot |
+| RHEL 10 base | `distro = "rhel-10"` in blueprint; compose on RHEL 10 host |
+| Local (not hosted) Image Builder | `osbuild-composer` / `image-builder` on customer-like RHEL host |
+| AWS deployable | AMI registered and EC2 launched in sandbox/OPEN |
+| Separate filesystems | `/var/log`, `/home`, `/tmp`, `/var/tmp` (< 5 GiB) |
+| `/tmp` noexec | fstab + first-boot reinforcement |
+| SELinux enforcing | config + runtime |
+| SSH 2222 / httpd 35443 | sshd drop-in, SELinux port labels, firewalld |
+| Admins + sudo password | `fladmins`, sudoers without NOPASSWD |
+| No root / password SSH | sshd hardened |
+| Firewall | Only 2222 + 35443 |
+| Survive reboot | systemd units enabled; verify after reboot |
+| httpd in container | Podman + generated systemd unit |
 
-## Why RHEL (value summary for presentation)
+## Value for stakeholders
 
-- **Consistency:** Enterprise lifecycle, certified cloud images, one patch stream for the fleet Casey manages.
-- **Security:** SELinux, crypto/policy defaults, and a hardening path (OpenSCAP/CIS stretch) for Ren’s audit needs.
-- **Operability:** Web Console / session recording story for Alex; container tooling that still feels like Linux services for traditional admins.
-- **Business outcome for Anya:** Faster, safer scale-out of the e-commerce web tier without increasing operational risk.
+| Stakeholder | Outcome |
+|-------------|---------|
+| Anya (CIO) | Safer scale-out of the digital storefront on a modern RHEL 10 standard |
+| Alex (Infra) | Fewer snowflake servers; simpler day-2 operations |
+| Ren (Security) | Enforcing SELinux, locked SSH, tight firewall, accountable admins |
+| Casey (Linux) | One engineering standard for the web fleet |
+| Cameron (Apps) | Containers that ops can run as services |
 
-## Recommended next step (closing slide)
+## Recommended next phase
 
-Pilot the gold AMI for staging e-commerce web nodes, enable Insights / session recording for production admin access, then expand Image Builder + automation for fleet rebuilds — after the manual gold image proves the standard.
+1. Pilot the RHEL 10 gold AMI on **staging** web nodes.  
+2. Enable **Web Console + Session Recording** for production admin access.  
+3. Automate rebuilds and add **Red Hat Insights** for fleet visibility.  
+4. Stretch: publish an **Azure** image from the same TOML.

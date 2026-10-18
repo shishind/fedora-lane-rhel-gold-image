@@ -7,18 +7,24 @@
 *secret*
 .aws/
 aws-exports.txt
+**/containers.json
+**/trust-policy.json
+**/role-policy.json
 
-# Local SSH / lab notes that may contain IPs/keys
+# Local notes / machine-specific
 local/
 notes.local.md
+*.raw
+*.qcow2
+*.vhd
+*.ami
+images/
 
-# OS / editor
+# OS / editor / tooling
 .DS_Store
 *.swp
 .idea/
 .vscode/
-
-# OpenSCAP large generated files (commit a short summary instead if huge)
-# Uncomment if reports are large:
-# docs/scap-report.html
-# docs/scap-results.xml
+.venv*/
+venv/
+docs/_template_preview/

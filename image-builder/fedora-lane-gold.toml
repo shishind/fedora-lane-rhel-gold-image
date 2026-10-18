@@ -1,0 +1,224 @@
+# Fedora Lane gold image — LOCAL Image Builder blueprint (RHEL 10 base)
+# IMPORTANT: Compose on a RHEL 10 Image Builder host (not RHEL 9).
+# Confirm exact distro id:  composer-cli distros list
+#   If list shows rhel-10.0 or rhel-100, change distro= below to match EXACTLY.
+#
+# Push:   composer-cli blueprints push fedora-lane-gold.toml
+# Build:  composer-cli compose start fedora-lane-gold ami
+# Azure:  composer-cli compose start fedora-lane-gold vhd
+#
+# Lab sudo password for fladmin1/fladmin2: FedoraLane-Lab-2026!
+
+name = "fedora-lane-gold"
+description = "Fedora Lane e-commerce web gold image (RHEL 10)"
+version = "0.1.0"
+distro = "rhel-10"
+modules = []
+groups = []
+
+[[packages]]
+name = "httpd"
+version = "*"
+
+[[packages]]
+name = "podman"
+version = "*"
+
+[[packages]]
+name = "container-selinux"
+version = "*"
+
+[[packages]]
+name = "policycoreutils-python-utils"
+version = "*"
+
+[[packages]]
+name = "firewalld"
+version = "*"
+
+[[packages]]
+name = "openssh-server"
+version = "*"
+
+[[packages]]
+name = "sudo"
+version = "*"
+
+[[packages]]
+name = "openscap-scanner"
+version = "*"
+
+[[packages]]
+name = "scap-security-guide"
+version = "*"
+
+# Separate mounts (< 5 GiB) — Fedora Lane reliability requirement
+[[customizations.filesystem]]
+mountpoint = "/var/log"
+minsize = "2 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/home"
+minsize = "2 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/tmp"
+minsize = "2 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/var/tmp"
+minsize = "2 GiB"
+
+[[customizations.group]]
+name = "fladmins"
+
+[[customizations.user]]
+name = "fladmin1"
+description = "Fedora Lane administrator"
+groups = ["fladmins", "wheel"]
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXidbPLta1+Vb1SDuonODoZRQCtEg/6Y/w4o3NiSBty fedora-lane-apac"
+password = "$6$7wXpOFE7T6w0AW2H$zNSnQpebIbPd.JiMYMP7ehmbgU8vq/owYy/a4.pDL2XzA1qI59HoOzcJy.VMrxd7Lk2k6fF/EegnPkDoWKUPu/"
+
+[[customizations.user]]
+name = "fladmin2"
+description = "Fedora Lane administrator"
+groups = ["fladmins", "wheel"]
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXidbPLta1+Vb1SDuonODoZRQCtEg/6Y/w4o3NiSBty fedora-lane-apac"
+password = "$6$7wXpOFE7T6w0AW2H$zNSnQpebIbPd.JiMYMP7ehmbgU8vq/owYy/a4.pDL2XzA1qI59HoOzcJy.VMrxd7Lk2k6fF/EegnPkDoWKUPu/"
+
+[customizations]
+hostname = "fl-web-gold"
+
+[customizations.services]
+enabled = ["firewalld", "sshd", "fedora-lane-firstboot.service"]
+
+[customizations.firewall]
+ports = ["2222:tcp", "35443:tcp"]
+
+[customizations.firewall.services]
+enabled = []
+disabled = ["ssh", "http", "https", "cockpit"]
+
+[[customizations.files]]
+path = "/etc/ssh/sshd_config.d/99-fedora-lane.conf"
+data = """
+Port 2222
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+ChallengeResponseAuthentication no
+UsePAM yes
+"""
+
+[[customizations.files]]
+path = "/etc/sudoers.d/fladmins"
+mode = "0440"
+data = """
+%fladmins ALL=(ALL) ALL
+"""
+
+# Parent dirs must exist before [[customizations.files]] can write nested paths
+[[customizations.directories]]
+path = "/opt/fedora-lane"
+mode = "0755"
+ensure_parents = true
+
+[[customizations.directories]]
+path = "/opt/fedora-lane/www"
+mode = "0755"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/opt/fedora-lane/www/index.html"
+data = """
+<html><body><h1>Fedora Lane e-commerce web — httpd OK</h1></body></html>
+"""
+
+# Fallback path that httpd package already provides (safe if dirs unsupported)
+[[customizations.files]]
+path = "/var/www/html/index.html"
+data = """
+<html><body><h1>Fedora Lane e-commerce web — httpd OK</h1></body></html>
+"""
+
+[[customizations.files]]
+path = "/usr/local/sbin/fedora-lane-firstboot.sh"
+mode = "0755"
+data = """
+#!/bin/bash
+set -euo pipefail
+FLAG=/var/lib/fedora-lane-firstboot.done
+[[ -f "$FLAG" ]] && exit 0
+
+sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
+setenforce 1 || true
+
+# Persist /tmp noexec: rewrite /tmp fstab line options
+cp -a /etc/fstab /etc/fstab.fedora-lane.bak || true
+awk 'BEGIN{OFS="\t"} /^#/ || NF<4 {print; next} $2=="/tmp" {$4="defaults,nodev,nosuid,noexec"; print; next} {print}' \
+  /etc/fstab.fedora-lane.bak > /etc/fstab
+mount -o remount,nodev,nosuid,noexec /tmp || true
+
+semanage port -a -t ssh_port_t -p tcp 2222 2>/dev/null || semanage port -m -t ssh_port_t -p tcp 2222
+semanage port -a -t http_port_t -p tcp 35443 2>/dev/null || semanage port -m -t http_port_t -p tcp 35443
+
+systemctl enable --now firewalld
+firewall-cmd --permanent --remove-service=ssh || true
+firewall-cmd --permanent --add-port=2222/tcp
+firewall-cmd --permanent --add-port=35443/tcp
+firewall-cmd --reload
+
+mkdir -p /opt/fedora-lane/www
+if [[ ! -f /opt/fedora-lane/www/index.html ]]; then
+  cp -a /var/www/html/index.html /opt/fedora-lane/www/index.html 2>/dev/null || \
+    echo '<html><body><h1>Fedora Lane e-commerce web — httpd OK</h1></body></html>' > /opt/fedora-lane/www/index.html
+fi
+
+# Prefer UBI 10 httpd on RHEL 10 gold image; fall back to UBI 9 / docker.io
+podman pull registry.access.redhat.com/ubi10/httpd-24 \
+  || podman pull registry.access.redhat.com/ubi9/httpd-24 \
+  || podman pull docker.io/library/httpd:2.4
+podman rm -f fl-httpd 2>/dev/null || true
+if podman image exists registry.access.redhat.com/ubi10/httpd-24; then
+  podman run -d --name fl-httpd --restart=always -p 35443:8080 \
+    -v /opt/fedora-lane/www:/var/www/html:Z \
+    registry.access.redhat.com/ubi10/httpd-24
+elif podman image exists registry.access.redhat.com/ubi9/httpd-24; then
+  podman run -d --name fl-httpd --restart=always -p 35443:8080 \
+    -v /opt/fedora-lane/www:/var/www/html:Z \
+    registry.access.redhat.com/ubi9/httpd-24
+else
+  podman run -d --name fl-httpd --restart=always -p 35443:80 \
+    -v /opt/fedora-lane/www:/usr/local/apache2/htdocs:Z \
+    docker.io/library/httpd:2.4
+fi
+
+cd /tmp
+rm -f container-fl-httpd.service
+podman generate systemd --new --name fl-httpd --files
+cp -f /tmp/container-fl-httpd.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now container-fl-httpd.service
+systemctl disable --now httpd 2>/dev/null || true
+
+touch "$FLAG"
+"""
+
+[[customizations.files]]
+path = "/etc/systemd/system/fedora-lane-firstboot.service"
+data = """
+[Unit]
+Description=Fedora Lane gold image first-boot hardening
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/fedora-lane-firstboot.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/fedora-lane-firstboot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+"""
