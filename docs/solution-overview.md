@@ -88,3 +88,11 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
 2. Enable **Web Console + Session Recording** for production admin access.  
 3. Automate rebuilds and add **Red Hat Insights** for fleet visibility.  
 4. Stretch: publish an **Azure** image from the same TOML.
+
+## Official Red Hat documentation
+
+See [redhat-documentation.md](redhat-documentation.md) for links to:
+
+- *Composing a customized RHEL system image* (RHEL 10 Image Builder)  
+- *Deploying and managing RHEL on Amazon Web Services*  
+- SELinux, firewalld, OpenSSH, containers, and Web Console guides

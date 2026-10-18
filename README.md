@@ -20,7 +20,8 @@ A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as 
 | **Container skills gap** | **httpd** runs in Podman on port **35443**, managed as a **systemd** service |
 
 Full narrative: [docs/solution-overview.md](docs/solution-overview.md)  
-Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)
+Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)  
+**Official Red Hat docs:** [docs/redhat-documentation.md](docs/redhat-documentation.md)
 
 ---
 
