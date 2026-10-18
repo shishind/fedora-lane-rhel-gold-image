@@ -62,7 +62,7 @@ SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
 
 ---
 
-## How to build and run (consultant / reproducers)
+## How to build and run
 
 ### Prerequisites
 
