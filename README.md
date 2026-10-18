@@ -36,7 +36,6 @@ image-builder/
 docs/
   solution-overview.md             ← client-facing architecture + why
   redhat-documentation.md          ← official Red Hat doc links
-  Fedora-Lane-RHEL-Gold-Image-FASTER.pdf
   07-rhel10-web-console-demo.md    ← optional day-2 Web Console demo (RHDP)
 verify/verify.sh                   ← post-boot proof checklist
 scripts/                           ← optional hardening helpers (EC2 path)

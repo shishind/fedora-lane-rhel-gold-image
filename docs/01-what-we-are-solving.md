@@ -55,7 +55,7 @@ A **single RHEL gold AMI** with:
 - Hardened access: no root SSH, no password SSH, sudo always requires password
 - Separate admin accounts/group (accountability)
 
-### Narrative for next phase (mention in presentation)
+### Narrative for next phase
 
 RHEL **Session Recording** + **Web Console** let Fedora Lane review *who changed what* — map this to Challenge 2 even if the gold-image lab focuses on the secure baseline.
 

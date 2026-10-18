@@ -20,11 +20,14 @@ notes.local.md
 *.ami
 images/
 
-# Internal presentation coaching (keep local; do not commit talk tracks)
+# Presentation materials (keep local; do not commit)
 docs/presentation-outline.md
 docs/*-slides.md
+docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pdf
+docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx
 **/presentation-outline.md
 **/presentation-cheat-sheet.md
+*.pptx
 
 # OS / editor / tooling
 .DS_Store
