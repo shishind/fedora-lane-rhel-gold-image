@@ -3,9 +3,6 @@
 **Audience:** Fedora Lane stakeholders (Casey Novak, Alex Lee, Ren Tanaka) and Red Hat consultants reproducing this lab.  
 **Goal:** A secure, standardized **Red Hat Enterprise Linux 10** gold image for the e-commerce **web server** fleet on AWS (Azure stretch).
 
-This repository is the **source of truth** for the Junior Consultant deliverable: blueprint, docs, verify scripts, and presentation materials.  
-**Never commit credentials**, RHDP/AWS keys, private SSH keys, or passwords.
-
 ---
 
 ## What we built (one sentence)
