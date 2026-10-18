@@ -12,7 +12,8 @@ Private deliverable repo. **Never commit secrets.** Add collaborator **`mflaim-e
 
 Read in order:
 
-1. **[docs/03-apac-mac-aws-why-guide.md](docs/03-apac-mac-aws-why-guide.md)** ← detailed steps **and why** (your main guide)
+1. **[docs/04-easy-aws-ec2-ami.md](docs/04-easy-aws-ec2-ami.md)** ← **beginner copy/paste path (start here)**
+2. **[docs/03-apac-mac-aws-why-guide.md](docs/03-apac-mac-aws-why-guide.md)** ← detailed steps **and why**
 2. [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md) — customer challenges → value
 3. [docs/solution-overview.md](docs/solution-overview.md) — client-facing solution write-up
 4. [docs/02-aws-build-commands.md](docs/02-aws-build-commands.md) — extra command reference
