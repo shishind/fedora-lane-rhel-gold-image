@@ -481,11 +481,3 @@ sudo oscap xccdf eval \
 ```
 
 Copy the HTML report out for your repo **docs/** (no secrets).
-
----
-
-## Demo talking points (while running commands)
-
-1. **Inconsistency** → “Same AMI every time; partitions and packages identical.”
-2. **Untraceable changes** → “Hardened identity: key-only SSH, no root, sudo password; baseline is known-good.”
-3. **Container skills gap** → “Ops manages `container-fl-httpd.service`, not a fragile one-liner.”

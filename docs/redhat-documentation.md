@@ -1,7 +1,7 @@
 # Red Hat documentation (official)
 
 Curated links for this Fedora Lane **RHEL 10 gold image** solution.  
-Use these in the README, solution overview, and live presentation (“per Red Hat documentation…”).
+Use these in the README and solution overview when citing official Red Hat guidance.
 
 > **Note for FASTER:** Prefer **local** Image Builder on a RHEL 10 host. Do **not** use the hosted Image Builder cloud service for this practice activity.
 
@@ -80,16 +80,6 @@ For GUI demos, use RHDP **RHEL 10 Base** (Web Console preinstalled).
 | Session recording (search within Security / Recording docs for your minor release) | [Recording sessions (RHEL documentation portal search)](https://docs.redhat.com/en/search/?advanced=true&product=Red%20Hat%20Enterprise%20Linux&q=session%20recording) |
 
 Lab guide in this repo: [07-rhel10-web-console-demo.md](07-rhel10-web-console-demo.md)
-
----
-
-## 7. How to cite these in the presentation
-
-Example lines:
-
-- “Per Red Hat’s *Composing a customized RHEL system image* guide, we define a RHEL 10 blueprint and build locally.”  
-- “Per *Deploying RHEL on AWS*, we publish the disk as an AMI and launch EC2 for proof.”  
-- “Containers follow *Building, running, and managing containers* — httpd as a systemd-managed Podman service.”
 
 ---
 

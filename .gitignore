@@ -20,6 +20,12 @@ notes.local.md
 *.ami
 images/
 
+# Internal presentation coaching (keep local; do not commit talk tracks)
+docs/presentation-outline.md
+docs/*-slides.md
+**/presentation-outline.md
+**/presentation-cheat-sheet.md
+
 # OS / editor / tooling
 .DS_Store
 *.swp

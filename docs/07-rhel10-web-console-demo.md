@@ -98,18 +98,7 @@ Use **tell → show → tell** on each.
 
 ---
 
-## 5) 15-minute SA talk track (if this is your whole demo)
-
-| Time | Block |
-|------|--------|
-| 0–2 min | Opening: Fedora Lane 3 challenges + agenda |
-| 2–7 min | Value: RHEL 10 + consistent management story |
-| 7–12 min | Live Web Console demos (A→B→C above) |
-| 12–15 min | Close: next step (pilot Web Console on gold RHEL 10 web nodes / Insights) |
-
----
-
-## 6) If you are Junior Consultant (gold image + this demo)
+## 5) If you are Junior Consultant (gold image + this demo)
 
 Keep two clear stories:
 
@@ -120,7 +109,7 @@ Do **not** mix “we built on 9.4” with “demo is RHEL 10” without saying s
 
 ---
 
-## 7) Timing / RHDP gotchas
+## 6) Timing / RHDP gotchas
 
 - Environments **auto-shut down** — extend before Part 2.  
 - Provision **the day before**; rehearse once on camera.  
@@ -129,12 +118,11 @@ Do **not** mix “we built on 9.4” with “demo is RHEL 10” without saying s
 
 ---
 
-## 8) Quick verification before the call
+## 7) Quick verification before the call
 
 - [ ] RHEL 10 Base Ready  
 - [ ] Web Console login works from your laptop  
 - [ ] Overview + Logs work  
 - [ ] Session Recording playback works  
 - [ ] Containers page visible  
-- [ ] Lifetime extended past your slot  
-- [ ] Opening/closing lines memorized (Fedora Lane challenges)
+- [ ] Lifetime extended past your slot

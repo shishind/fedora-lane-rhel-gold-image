@@ -35,7 +35,7 @@ image-builder/
   README.md                        ← Image Builder notes
 docs/
   solution-overview.md             ← client-facing architecture + why
-  presentation-outline.md          ← 15-minute talk track
+  redhat-documentation.md          ← official Red Hat doc links
   Fedora-Lane-RHEL-Gold-Image-FASTER.pdf
   07-rhel10-web-console-demo.md    ← optional day-2 Web Console demo (RHDP)
 verify/verify.sh                   ← post-boot proof checklist
@@ -114,20 +114,6 @@ From the customer’s perspective (Casey / Alex):
 4. Security baseline is already on: SELinux, firewall, partitions, sudo policy.
 
 Optional day-2 GUI story (Web Console / Session Recording): [docs/07-rhel10-web-console-demo.md](docs/07-rhel10-web-console-demo.md) on RHDP **RHEL 10 Base** (gold AMI firewall still only 2222+35443 per brief).
-
----
-
-## 15-minute presentation
-
-| Block | Time | Content |
-|-------|------|---------|
-| Opening | 1–2 min | Team + restate 3 challenges |
-| Live walkthrough | 5–10 min | EC2 from AMI — verify controls |
-| Value summary | 2–5 min | Map features → challenges |
-| Closing | 1–2 min | Pilot staging + Session Recording next |
-
-Talk track: [docs/presentation-outline.md](docs/presentation-outline.md)  
-Slides PDF: [docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pdf](docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pdf)
 
 ---
 

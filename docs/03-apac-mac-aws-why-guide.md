@@ -501,16 +501,6 @@ aws ec2 stop-instances --instance-ids "$INSTANCE_ID" "$TEST_ID"
 
 ---
 
-## Presentation cheat-sheet (say the “why” out loud)
-
-1. **Partitions** — “Logs and temp can’t fill root and kill checkout.”  
-2. **SELinux + firewall + odd ports** — “Same security baseline on every web node; audit-friendly.”  
-3. **SSH keys / no root / sudo password** — “We know which admin acted; no anonymous root.”  
-4. **Podman httpd + systemd** — “Ops manages a service, not a fragile developer one-liner.”  
-5. **AMI → new instance** — “This is a repeatable gold standard for Alex’s fleet, not a one-off VM.”
-
----
-
 ## Stretch (if time before 19 Oct)
 
 ```bash
