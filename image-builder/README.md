@@ -28,12 +28,17 @@ It encodes partitions, users, firewall ports, SSH hardening files, and a first-b
 Image Builder does **not** run natively on Mac. You need a **RHEL 9/10 machine** (another EC2, RHDP VM, or local UTM RHEL) with:
 
 ```bash
-sudo dnf install -y osbuild-composer composer-cli cockpit-composer
+sudo dnf install -y osbuild-composer composer-cli cockpit-composer weldr-client
 sudo systemctl enable --now osbuild-composer.socket
-sudo usermod -aG weldr $USER
-# log out/in, then:
+sudo usermod -aG weldr "$USER"
+# log out / SSH again (or: newgrp weldr), then:
+id | grep weldr
 composer-cli status
+composer-cli distros list
 ```
+
+If you get **permission denied on `/run/weldr/api.socket`**, see  
+[09-weldr-permission-fix.md](09-weldr-permission-fix.md).
 
 ## Build flow (high level)
 

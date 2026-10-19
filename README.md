@@ -72,7 +72,12 @@ SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
 ### Build (high level)
 
 ```bash
-# On RHEL 10 builder
+# On RHEL 10 builder — first time only:
+#   sudo dnf -y install osbuild-composer weldr-client composer-cli ...
+#   sudo systemctl enable --now osbuild-composer.socket
+#   sudo usermod -aG weldr "$USER"
+#   then log out / SSH again  (see image-builder/09-weldr-permission-fix.md)
+
 composer-cli distros list          # confirm rhel-10 / rhel-10.x name
 # Edit image-builder/fedora-lane-gold.toml distro= if needed to match EXACTLY
 

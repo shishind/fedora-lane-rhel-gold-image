@@ -4,7 +4,7 @@ The blueprint now sets:
 
 ```toml
 distro = "rhel-10"
-version = "0.1.0"
+version = "0.1.1"
 ```
 
 Your previous AMI was composed on **RHEL 9.4** — rebuild on a **RHEL 10** Image Builder host.
@@ -19,13 +19,24 @@ cat /etc/os-release
 Install Image Builder from **Red Hat** repos (not Rocky):
 
 ```bash
-sudo dnf -y install osbuild-composer weldr-client cockpit-composer genisoimage qemu-img
+sudo dnf -y install osbuild-composer weldr-client composer-cli \
+  cockpit-composer genisoimage qemu-img
 sudo systemctl enable --now osbuild-composer.socket
-sudo usermod -aG weldr $USER
-# log out / in
+sudo usermod -aG weldr "$USER"
+getent group weldr    # your user must appear here
+```
+
+**Required:** log out of SSH and connect again (or run `newgrp weldr`).  
+Group membership does **not** apply to the current shell until you refresh.
+
+```bash
+id | grep weldr       # must show weldr
 composer-cli status show
 composer-cli distros list
 ```
+
+If you see `you do not have permission to access /run/weldr/api.socket`, follow the full fix:  
+**[09-weldr-permission-fix.md](09-weldr-permission-fix.md)**
 
 ## 2) Match `distro` exactly
 

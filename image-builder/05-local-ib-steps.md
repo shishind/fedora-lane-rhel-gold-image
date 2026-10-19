@@ -15,7 +15,7 @@ Mac only edits files. Builds run on a **RHEL** machine (Image Builder does not r
 [ Launch VM from that image → verify after reboot ]
 ```
 
-Lab sudo password (for demo): **`FedoraLane-Lab-2026!`**  
+Lab sudo password (for demo): **`RedHat`**  
 SSH key already embedded: your `fedora-lane-lab` public key.
 
 ---
@@ -54,17 +54,29 @@ SSH in as `ec2-user` (or `cloud-user`), then register RHEL if needed (RHDP image
 sudo dnf -y install osbuild-composer composer-cli cockpit-composer \
   genisoimage weldr-client
 sudo systemctl enable --now osbuild-composer.socket
-sudo usermod -aG weldr $USER
+sudo usermod -aG weldr "$USER"
+getent group weldr
 ```
 
-**Log out and SSH back in** (so `weldr` group applies), then:
+**Log out and SSH back in** (so `weldr` group applies).  
+Do **not** skip this — otherwise `composer-cli` fails with:
+
+`you do not have permission to access /run/weldr/api.socket`
+
+Quick same-session workaround: `newgrp weldr`
+
+Then:
 
 ```bash
+id | grep weldr
 composer-cli status
+composer-cli distros list
 composer-cli compose types
 ```
 
 You should see `ami` and `vhd` (or `vhd` / Azure-related types) in the list.
+
+Full troubleshooting: [09-weldr-permission-fix.md](09-weldr-permission-fix.md)
 
 ---
 
@@ -157,7 +169,7 @@ findmnt /var/log /home /tmp /var/tmp
 findmnt -no OPTIONS /tmp
 sudo ss -tlnp | egrep '2222|35443'
 curl -s http://127.0.0.1:35443/
-sudo -k; sudo id   # password: FedoraLane-Lab-2026!
+sudo -k; sudo id   # password: RedHat
 sudo reboot
 # reconnect and re-check
 ```
