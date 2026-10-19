@@ -110,6 +110,8 @@ sudo image-builder build vhd \
 
 Use this when you already uploaded the `.raw` with `aws s3 cp` (not `image-builder upload`).
 
+**CLI** commands are below. For the same flow in the **AWS Console** (Import snapshot → Create image → Security group → Launch), use [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md) Part 5 sections **5g–5j**.
+
 ```text
 aws s3 cp .raw → S3
         ↓

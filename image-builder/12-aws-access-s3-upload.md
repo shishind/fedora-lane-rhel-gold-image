@@ -195,13 +195,17 @@ aws s3 ls "s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/"
 
 ## Part 5 — After `.raw` is in S3: snapshot → AMI → launch
 
-S3 only stores the file. EC2 needs an **AMI**. Flow:
+S3 only stores the file. EC2 needs an **AMI**. Flow (same for CLI or Console):
 
 ```text
-S3 .raw  →  import-snapshot (snap-…)  →  register-image (ami-…)  →  run-instances  →  SSH :2222
+S3 .raw  →  import snapshot (snap-…)  →  create AMI (ami-…)  →  launch EC2  →  SSH :2222
 ```
 
 Needs the account **`vmimport`** IAM role (one-time). If import fails with a role error, create `vmimport` per the [AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws).
+
+Use **either** the CLI steps (5a–5f) **or** the Console steps (5g–5j) below — not both for the same upload.
+
+### CLI path (5a–5f)
 
 Set examples (adjust names if yours differ):
 
@@ -350,15 +354,86 @@ curl -s http://$PUBLIC_IP:35443/
 
 Full check list: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
 
+### Console path (5g–5j)
+
+Do this in the **AWS Management Console** in the same region as the S3 object (example: **us-east-2**). Sign in with the Fedora Lane / project account.
+
+#### 5g) Import snapshot from S3 (Console)
+
+1. Open **EC2** → left menu **Elastic Block Store** → **Snapshots**.  
+2. **Actions** → **Import snapshot** (or **Import snapshot** button if shown).  
+3. Fill in:
+   - **Description:** `Fedora Lane RHEL 10 gold`
+   - **Disk container** / image format: **RAW**
+   - **S3 bucket:** e.g. `fedora-lane-gold-1792315114`
+   - **S3 key:** full object key, e.g. `Fedora-Lane-Images/d951ae1c-382e-47f1-9990-f89544935eb8-image.raw`  
+     (copy from S3 → bucket → object → **Copy S3 URI**, then drop the `s3://bucket/` prefix)
+4. Start the import.  
+5. Stay on **Snapshots** (or **Import tasks** / **Imports and exports** if your console layout shows it). Refresh until status is **completed**.  
+6. Copy the new **Snapshot ID** (`snap-…`). Large ~12 GiB images often take **10–30+ minutes**.
+
+If the import fails citing **vmimport**, create that IAM role once (same Red Hat AWS AMI chapter linked above), then retry.
+
+#### 5h) Create AMI from the snapshot (Console)
+
+1. **EC2** → **Snapshots** → select the completed `snap-…`.  
+2. **Actions** → **Create image from snapshot** (wording may be **Create image**).  
+3. Settings:
+   - **Name:** e.g. `fedora-lane-rhel10-gold-YYYYMMDD`
+   - **Description:** `Fedora Lane RHEL 10 gold web image`
+   - **Architecture:** `x86_64`
+   - **Virtualization type:** `Hardware-assisted virtualization` (HVM)
+   - **Root device name:** `/dev/sda1` (if boot fails later, recreate with `/dev/xvda`)
+   - **Volume type:** `gp3` (or keep default gp2)
+   - **Delete on termination:** enabled
+   - **ENA support:** enabled if the form offers it
+   - **Boot mode:** `uefi-preferred` if offered; otherwise leave default
+4. Create image. Wait until **EC2** → **AMIs** (Owned by me) shows state **available**. Note `ami-…`.
+
+#### 5i) Security group (Console)
+
+1. **EC2** → **Security Groups** → **Create security group**.  
+2. **Name:** `fedora-lane-gold-sg`  
+3. **Description:** `Fedora Lane gold SSH 2222 + httpd 35443`  
+4. **VPC:** default VPC (or the VPC you will launch into).  
+5. **Inbound rules** — add two custom TCP rules, source **My IP** (not 0.0.0.0/0):
+   - Port **2222** (SSH on this gold image)
+   - Port **35443** (httpd demo)
+6. Create. Note the security group ID (`sg-…`).
+
+If your public IP changes later, edit the SG and replace the `/32` source or SSH will time out.
+
+#### 5j) Launch instance from the AMI (Console)
+
+1. **EC2** → **AMIs** → select your `ami-…` → **Launch instance from AMI**.  
+2. **Name:** `fedora-lane-gold-test`  
+3. **Instance type:** `t3.medium` (or similar).  
+4. **Key pair:** optional for day-2 (gold image already has `fladmin1` / `fladmin2` keys). You can proceed without a new key if the form allows.  
+5. **Network settings:**
+   - Same VPC as the security group
+   - A public subnet
+   - **Auto-assign public IP:** Enable
+   - **Firewall / security groups:** select `fedora-lane-gold-sg` (remove default if it only opens 22)
+6. Launch. Wait until **Instance state** is **Running** and a **Public IPv4 address** appears.  
+7. Wait **2–5 minutes** for first-boot (Podman pull + httpd), then SSH:
+
+```bash
+ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@PUBLIC_IP
+```
+
+Verify with [docs/08-verify-customizations.md](../docs/08-verify-customizations.md).
+
+**Optional — upload `.raw` via Console instead of CLI:** S3 → bucket → **Upload**. Prefer CLI `aws s3 cp` for multi-GB files (more reliable). Bucket creation in Console is already covered in Part 3.
+
 ---
 
 ## Checklist
 
-- [ ] AWS CLI installed on the RHEL builder  
-- [ ] Credentials configured (`aws sts get-caller-identity` succeeds)  
+- [ ] AWS CLI installed on the RHEL builder (if using CLI path)  
+- [ ] Credentials configured (`aws sts get-caller-identity` succeeds) **or** Console sign-in works  
 - [ ] S3 bucket (+ folder) created; `.raw` uploaded  
-- [ ] `import-snapshot` completed → `snap-…`  
-- [ ] `register-image` → `ami-…`  
+- [ ] Import snapshot completed → `snap-…` (CLI **or** Console)  
+- [ ] AMI registered / created → `ami-…` (CLI **or** Console)  
 - [ ] Security group allows **your IP** on **2222** and **35443**  
 - [ ] EC2 launched; SSH as `fladmin1` on port 2222  
 - [ ] Customizations verified  
