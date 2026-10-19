@@ -117,8 +117,10 @@ Official: [Creating system images with the CLI](https://docs.redhat.com/en/docum
 ### Publish to AWS + prove
 
 1. Prefer Image Builder AWS upload (commands above), **or**  
-   Console S3 + `aws s3 cp` + import — [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md).  
-2. Launch EC2; security group allows **2222** and **35443** from admin networks.  
+   `aws s3 cp` → **import-snapshot** → **register-image** → **run-instances** —  
+   [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md)  
+   (copy-paste examples: [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md) §5).  
+2. Security group must allow **your IP** on **2222** and **35443**.  
 3. Wait for first-boot (Podman pull), then:
 
 ```bash

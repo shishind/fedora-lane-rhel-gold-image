@@ -106,27 +106,120 @@ sudo image-builder build vhd \
 
 ---
 
-## 5) Manual path (if you are not using `image-builder upload`)
+## 5) Manual path — S3 → snapshot → AMI → launch
 
-```bash
-# Upload raw to the folder created in Console
-aws s3 cp \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
+Use this when you already uploaded the `.raw` with `aws s3 cp` (not `image-builder upload`).
 
-aws s3 ls s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
+```text
+aws s3 cp .raw → S3
+        ↓
+aws ec2 import-snapshot  →  snap-…
+        ↓
+aws ec2 register-image   →  ami-…
+        ↓
+aws ec2 run-instances    →  PUBLIC_IP
+        ↓
+ssh -p 2222 fladmin1@PUBLIC_IP
 ```
 
-Then `import-snapshot` / `register-image` — full steps: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
-
----
-
-## 6) After the AMI exists — launch check
+### 5a) Upload `.raw` (if not done)
 
 ```bash
-# From your laptop (SG must allow your IP on 2222)
-ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
+export AWS_DEFAULT_REGION=us-east-2
+BUCKET=fedora-lane-gold-1792315114
+S3_KEY=Fedora-Lane-Images/d951ae1c-382e-47f1-9990-f89544935eb8-image.raw
+
+aws s3 cp \
+  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  "s3://${BUCKET}/Fedora-Lane-Images/"
+
+aws s3 ls "s3://${BUCKET}/Fedora-Lane-Images/"
+```
+
+### 5b) Import snapshot
+
+```bash
+cat > /tmp/containers.json <<EOF
+{
+  "Description": "Fedora Lane RHEL 10 gold",
+  "Format": "raw",
+  "UserBucket": {
+    "S3Bucket": "$BUCKET",
+    "S3Key": "$S3_KEY"
+  }
+}
+EOF
+
+aws ec2 import-snapshot \
+  --description "Fedora Lane RHEL 10 gold" \
+  --disk-container file:///tmp/containers.json
+
+# wait until completed
+aws ec2 describe-import-snapshot-tasks --output table
+
+SNAP_ID=$(aws ec2 describe-import-snapshot-tasks \
+  --query 'ImportSnapshotTasks[0].SnapshotTaskDetail.SnapshotId' --output text)
+echo "SNAP_ID=$SNAP_ID"
+```
+
+### 5c) Create AMI from snapshot
+
+```bash
+AMI_ID=$(aws ec2 register-image \
+  --name "fedora-lane-rhel10-gold-$(date +%Y%m%d)" \
+  --description "Fedora Lane RHEL 10 gold web image" \
+  --architecture x86_64 \
+  --virtualization-type hvm \
+  --ena-support \
+  --root-device-name /dev/sda1 \
+  --block-device-mappings "DeviceName=/dev/sda1,Ebs={SnapshotId=${SNAP_ID},DeleteOnTermination=true,VolumeType=gp3}" \
+  --query ImageId --output text)
+echo "AMI_ID=$AMI_ID"
+```
+
+### 5d) Security group + launch
+
+```bash
+MY_IP=$(curl -s https://checkip.amazonaws.com)/32
+VPC_ID=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true \
+  --query 'Vpcs[0].VpcId' --output text)
+SUBNET_ID=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC_ID \
+  --query 'Subnets[0].SubnetId' --output text)
+
+SG_ID=$(aws ec2 create-security-group \
+  --group-name fedora-lane-gold-sg \
+  --description "Fedora Lane gold 2222+35443" \
+  --vpc-id "$VPC_ID" --query GroupId --output text 2>/dev/null || \
+  aws ec2 describe-security-groups \
+    --filters Name=group-name,Values=fedora-lane-gold-sg \
+    --query 'SecurityGroups[0].GroupId' --output text)
+
+aws ec2 authorize-security-group-ingress --group-id "$SG_ID" \
+  --protocol tcp --port 2222 --cidr "$MY_IP" 2>/dev/null || true
+aws ec2 authorize-security-group-ingress --group-id "$SG_ID" \
+  --protocol tcp --port 35443 --cidr "$MY_IP" 2>/dev/null || true
+
+INSTANCE_ID=$(aws ec2 run-instances \
+  --image-id "$AMI_ID" \
+  --instance-type t3.medium \
+  --subnet-id "$SUBNET_ID" \
+  --security-group-ids "$SG_ID" \
+  --associate-public-ip-address \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=fedora-lane-gold-test}]' \
+  --query 'Instances[0].InstanceId' --output text)
+
+aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
+PUBLIC_IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "PUBLIC_IP=$PUBLIC_IP"
+```
+
+### 5e) SSH (wait 2–5 min for first-boot)
+
+```bash
+ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@$PUBLIC_IP
 curl -s http://127.0.0.1:35443/
 ```
 
-Verification commands: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
+Full detail + troubleshooting: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)  
+Verify customizations: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
