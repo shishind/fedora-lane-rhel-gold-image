@@ -35,7 +35,7 @@ cat /etc/os-release   # VERSION_ID=10.x
 ```bash
 sudo dnf install -y image-builder cockpit-image-builder
 sudo image-builder list
-sudo image-builder list-images --filter "distro:rhel-10"
+sudo image-builder list --filter "distro:rhel-10*"
 ```
 
 Subscription/CDN issues: [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)
@@ -111,7 +111,7 @@ All examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.m
 ```bash
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10
+  --distro rhel-10.0
 ```
 
 Upload the VHD to Azure and create a VM (stretch).

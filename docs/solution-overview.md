@@ -35,7 +35,7 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
 ## High-level architecture
 
 ```text
-[ TOML blueprint: distro=rhel-10 ]
+[ TOML blueprint: distro=rhel-10.0 ]
               |
               v
 [ Local Image Builder on RHEL 10 host ]
