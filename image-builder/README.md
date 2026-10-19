@@ -47,7 +47,7 @@ sudo image-builder build ami \
   --with-buildlog
 ```
 
-Optional: build and register in AWS in one flow (needs AWS credentials, S3 bucket, `vmimport` role):
+**Build + upload to AWS in one command (example):**
 
 ```bash
 sudo image-builder build ami \
@@ -58,18 +58,19 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-Or build locally, then upload an existing `.raw`:
+**Upload an existing `.raw` (example):**
 
 ```bash
-sudo image-builder upload ./rhel-10*-ami-*.raw \
+sudo image-builder upload \
+  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
   --to=aws \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-Manual S3 + `import-snapshot` path (what we also documented):  
-[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+Full example sheet: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)  
+Manual S3 path: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
 Azure stretch:
 

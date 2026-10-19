@@ -319,15 +319,31 @@ That is how “httpd in a container, managed as a service” is delivered.
 # Copy TOML to builder if edited on Mac
 scp image-builder/fedora-lane-gold.toml user@BUILDER:~/
 
-# On builder
+# On builder — local build
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10 \
   --with-buildlog
+
+# On builder — build + upload to AWS (example)
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+
+# Upload existing raw (example)
+sudo image-builder upload \
+  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-Publish to AWS with Image Builder upload flags, or manual S3 path:  
-[05-local-ib-steps.md](05-local-ib-steps.md) · [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+More examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)  
+Also: [05-local-ib-steps.md](05-local-ib-steps.md) · [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
 ---
 

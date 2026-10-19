@@ -33,6 +33,7 @@ image-builder/
   fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
   README.md                        ← RHEL 10 image-builder CLI (current)
   08-rhel10-rebuild.md             ← build ami/vhd on RHEL 10
+  13-image-builder-aws-examples.md ← copy-paste build + AWS upload examples
   12-aws-access-s3-upload.md       ← AWS credentials + S3 / upload paths
   10-create-toml-blueprint.md      ← how the TOML is built
   11-depsolve-cdn-repo-fix.md     ← CDN / subscription for builds
@@ -86,12 +87,35 @@ sudo image-builder build ami \
   --with-buildlog
 ```
 
+**Build + upload to AWS (example):**
+
+```bash
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+**Upload an existing `.raw` (example):**
+
+```bash
+sudo image-builder upload \
+  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+All examples: [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md)  
 Full guide: [image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)  
 Official: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
 
 ### Publish to AWS + prove
 
-1. Prefer Image Builder AWS upload (`--aws-region` / `--aws-bucket` / `--aws-ami-name`), **or**  
+1. Prefer Image Builder AWS upload (commands above), **or**  
    Console S3 + `aws s3 cp` + import — [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md).  
 2. Launch EC2; security group allows **2222** and **35443** from admin networks.  
 3. Wait for first-boot (Podman pull), then:

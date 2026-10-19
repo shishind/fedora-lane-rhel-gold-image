@@ -8,7 +8,9 @@ Do **not** store Access Keys, Secret Keys, or session tokens in this Git reposit
 
 ## Preferred — Image Builder uploads for you
 
-With AWS credentials configured on the builder, an S3 bucket, and the `vmimport` role:
+With AWS credentials configured on the builder, an S3 bucket, and the `vmimport` role.
+
+**Example A — build and upload together:**
 
 ```bash
 sudo image-builder build ami \
@@ -19,7 +21,18 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-Or upload an existing raw file:
+**Example B — upload a file you already composed:**
+
+```bash
+sudo image-builder upload \
+  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+**Example C — glob pattern if the name matches `*-ami-*.raw`:**
 
 ```bash
 sudo image-builder upload ./*-ami-*.raw \
@@ -28,6 +41,8 @@ sudo image-builder upload ./*-ami-*.raw \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
+
+More examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)
 
 ---
 

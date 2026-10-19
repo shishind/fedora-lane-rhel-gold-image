@@ -52,33 +52,38 @@ sudo image-builder build ami \
 
 When finished, note the `.raw` (or similar) artifact in the build output directory.
 
-### Option A — Image Builder uploads to AWS (recommended when AWS is configured)
+### Option A — Image Builder uploads to AWS (recommended)
 
 Prerequisites: AWS credentials on the builder, writable S3 bucket, `vmimport` IAM role  
 ([AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)).
+
+**Build + upload in one step (example):**
 
 ```bash
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10 \
   --aws-region us-east-2 \
-  --aws-bucket <YOUR_BUCKET> \
+  --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-Or upload an already-built file:
+**Upload an already-built `.raw` (example):**
 
 ```bash
-sudo image-builder upload ./*-ami-*.raw \
+sudo image-builder upload \
+  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
   --to=aws \
   --aws-region us-east-2 \
-  --aws-bucket <YOUR_BUCKET> \
+  --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
+
+More copy-paste examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)
 
 ### Option B — Manual S3 + import-snapshot
 
-Same as before: Console/CLI bucket, `aws s3 cp`, then import.  
+Console/CLI bucket, `aws s3 cp`, then import.  
 [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
 ## 5) Gold image firewall note
