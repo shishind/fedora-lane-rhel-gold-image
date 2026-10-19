@@ -1,11 +1,12 @@
-# Local Image Builder on RHEL 9 (vSphere) — step by step
+# Legacy: Image Builder on RHEL 9 (vSphere)
 
-Build host = your **vSphere RHEL 9** machine.  
-Mac = edit files / git only.  
-Cloud = upload `ami` / `vhd` and demo.
+> **Preferred path:** RHEL **10** builder with the **`image-builder`** CLI — see [08-rhel10-rebuild.md](08-rhel10-rebuild.md) and [README.md](README.md).  
+> Keep this file only if you must build on an older RHEL 9 host (`composer-cli` / `osbuild-composer`).
+
+Build host = **vSphere RHEL 9**. Mac = edit files. Cloud = upload `ami` / `vhd`.
 
 Lab sudo password (in blueprint): `RedHat`  
-SSH key already in TOML: your `fedora-lane-lab` public key.
+SSH key already in TOML: `fedora-lane-lab` public key.
 
 ---
 

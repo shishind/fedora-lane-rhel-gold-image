@@ -1,11 +1,12 @@
-# Fedora Lane gold image — LOCAL Image Builder blueprint (RHEL 10 base)
-# IMPORTANT: Compose on a RHEL 10 Image Builder host (not RHEL 9).
-# Confirm exact distro id:  composer-cli distros list
-#   If list shows rhel-10.0 or rhel-100, change distro= below to match EXACTLY.
+# Fedora Lane gold image — LOCAL RHEL Image Builder blueprint (RHEL 10)
+# Build on a RHEL 10 host with the image-builder CLI (not hosted Image Builder).
+# Confirm distro:  sudo image-builder list-images --filter "distro:rhel-10"
+#   If list shows e.g. rhel-10.0, set distro= below to match EXACTLY.
 #
-# Push:   composer-cli blueprints push fedora-lane-gold.toml
-# Build:  composer-cli compose start fedora-lane-gold ami
-# Azure:  composer-cli compose start fedora-lane-gold vhd
+# Build AWS:  sudo image-builder build ami --blueprint ./fedora-lane-gold.toml --distro rhel-10
+# Build+AWS:  sudo image-builder build ami --blueprint ./fedora-lane-gold.toml --distro rhel-10 \
+#               --aws-region REGION --aws-bucket BUCKET --aws-ami-name NAME
+# Azure:      sudo image-builder build vhd --blueprint ./fedora-lane-gold.toml --distro rhel-10
 #
 # Lab sudo password for fladmin1/fladmin2: RedHat
 

@@ -1,202 +1,143 @@
-# Local Image Builder — easy steps (TOML → AWS AMI + Azure VHD)
+# Local Image Builder — RHEL 10 CLI → AWS AMI (+ Azure stretch)
 
-You confirmed: **local Image Builder + TOML is OK**.
-
-Mac only edits files. Builds run on a **RHEL** machine (Image Builder does not run on macOS).
+Mac only edits files. Builds run on a **RHEL 10** machine with the **`image-builder`** CLI.
 
 ```text
 [ Mac: edit TOML ]
        ↓
-[ RHEL "builder host" with osbuild-composer ]
+[ RHEL 10 builder: image-builder ]
        ↓
-  compose type ami  → upload/register on AWS
-  compose type vhd  → upload on Azure (stretch)
+  build type ami  → AWS AMI
+  build type vhd  → Azure (stretch)
        ↓
 [ Launch VM from that image → verify after reboot ]
 ```
 
-Lab sudo password (for demo): **`RedHat`**  
-SSH key already embedded: your `fedora-lane-lab` public key.
+Admin sudo password (demo): **`RedHat`**  
+SSH key in blueprint: `~/.ssh/fedora-lane-lab.pub` (comment `fedora-lane-apac`).
+
+Official: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
 
 ---
 
-## Step 1 — Launch a RHEL builder host (AWS)
+## Step 1 — RHEL 10 builder host
 
-This host **builds** images. It is not the gold web server itself.
-
-Use the same VPC/SG/key you already created (`us-east-2`), or recreate if expired.
+Use a RHEL 10 VM/EC2 with enough disk (about **60 GiB** free recommended for composes).
 
 ```bash
-export AWS_DEFAULT_REGION=us-east-2
-# reuse your earlier VPC_ID SUBNET_ID SG_ID AMI_ID KEY if still set
-
-aws ec2 run-instances \
-  --image-id $AMI_ID \
-  --instance-type t3.xlarge \
-  --key-name fedora-lane-builder \
-  --security-group-ids $SG_ID \
-  --subnet-id $SUBNET_ID \
-  --associate-public-ip-address \
-  --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":60,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=fedora-lane-image-builder}]' \
-  --query 'Instances[0].InstanceId' --output text
+cat /etc/os-release   # VERSION_ID=10.x
 ```
-
-**Why t3.xlarge + 60 GB?** Image composition needs CPU/RAM/disk.
-
-SSH in as `ec2-user` (or `cloud-user`), then register RHEL with Red Hat Subscription Manager if the host has no CDN repos yet.
 
 ---
 
-## Step 2 — Install local Image Builder on that RHEL host
+## Step 2 — Install Image Builder
 
 ```bash
-sudo dnf -y install osbuild-composer composer-cli cockpit-composer \
-  genisoimage weldr-client
-sudo systemctl enable --now osbuild-composer.socket
-sudo usermod -aG weldr "$USER"
-getent group weldr
+sudo dnf install -y image-builder cockpit-image-builder
+sudo image-builder list
+sudo image-builder list-images --filter "distro:rhel-10"
 ```
 
-**Log out and SSH back in** (so `weldr` group applies).  
-Do **not** skip this — otherwise `composer-cli` fails with:
-
-`you do not have permission to access /run/weldr/api.socket`
-
-Quick same-session workaround: `newgrp weldr`
-
-Then:
-
-```bash
-id | grep weldr
-composer-cli status
-composer-cli distros list
-composer-cli compose types
-```
-
-You should see `ami` and `vhd` (or `vhd` / Azure-related types) in the list.
-
-Full troubleshooting: [09-weldr-permission-fix.md](09-weldr-permission-fix.md)
+Subscription/CDN issues: [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)
 
 ---
 
-## Step 3 — Copy the TOML from your Mac
+## Step 3 — Copy the TOML to the builder
 
 **On Mac:**
 
 ```bash
 export BUILDER_IP=PASTE_BUILDER_PUBLIC_IP
-
-scp -i ~/.ssh/fedora-lane-builder.pem \
+scp -i ~/.ssh/<builder-key>.pem \
   ~/Projects/fedora-lane-rhel-gold-image/image-builder/fedora-lane-gold.toml \
-  ec2-user@$BUILDER_IP:~/
+  cloud-user@$BUILDER_IP:~/
 ```
 
-**On builder host:**
+**On builder:**
 
 ```bash
-composer-cli blueprints push ~/fedora-lane-gold.toml
-composer-cli blueprints list
-composer-cli blueprints show fedora-lane-gold
-composer-cli blueprints depsolve fedora-lane-gold
+ls -l ~/fedora-lane-gold.toml
 ```
-
-If `depsolve` errors on **CDN / repomd.xml / RepoError**, the builder is not
-subscribed or cannot reach `cdn.redhat.com` — see
-[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md).  
-Other depsolve errors are often package/name issues in the TOML.
 
 ---
 
-## Step 4 — Build the AWS image (`ami`)
+## Step 4 — Build AWS image (`ami`)
 
 ```bash
-composer-cli compose start fedora-lane-gold ami
-# prints: Compose started: <UUID>
+cd ~
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --with-buildlog
 ```
 
-Watch progress:
+Find the output `.raw` (name varies by release), for example:
 
 ```bash
-watch -n 30 'composer-cli compose status'
+ls -lh ./*ami*.raw ./*.raw 2>/dev/null
 ```
 
-When status is **FINISHED**:
+### Publish to AWS
+
+**Preferred (Image Builder upload):**  
+[AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
 
 ```bash
-COMPOSE_ID=PASTE_UUID
-mkdir -p ~/images && cd ~/images
-composer-cli compose image "$COMPOSE_ID"
-ls -lh
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --aws-region us-east-2 \
+  --aws-bucket <YOUR_BUCKET> \
+  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-You get an AMI-related artifact (often `.raw` or instructions file depending on version). Follow RHEL “upload AMI” for your composer version, **or** use:
+**Or** build first, then:
 
 ```bash
-# If composer produced a file usable with AWS import — typical pattern:
-# upload to S3 → ec2 import-snapshot / import-image → register AMI
+sudo image-builder upload ./*-ami-*.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket <YOUR_BUCKET> \
+  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-**AWS access + Console S3 bucket + CLI upload of `.raw`:**  
+**Or** manual Console S3 + CLI `aws s3 cp` + import-snapshot:  
 [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
-Example (what we ran on the RHEL 10 builder after creating the bucket in Console):
+---
+
+## Step 5 — Azure stretch (`vhd`)
 
 ```bash
-aws s3 cp \
-  d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10
 ```
 
-Many RHEL versions also support uploading via `composer-cli compose image` + AWS CLI upload scripts in the docs. If your output is `*.ami` or includes upload metadata, use that.
-
-After compose finishes, follow [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md).
+Upload the VHD to Azure and create a VM (stretch).
 
 ---
 
-## Step 5 — Build Azure image (stretch)
+## Step 6 — Launch and verify
+
+Security group: your IP on **2222** and **35443**.
 
 ```bash
-composer-cli compose start fedora-lane-gold vhd
-# wait FINISHED
-composer-cli compose image AZURE_COMPOSE_UUID
+ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
 ```
 
-Upload the VHD to Azure (stretch).
-
----
-
-## Step 6 — Launch from your gold AMI and prove
-
-Security group: allow **2222** and **35443** from your IP only.
+Commands: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
 
 ```bash
-ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@$GOLD_IP
-```
-
-First boot may take a few minutes (pulls container image). Then:
-
-```bash
+cat /etc/redhat-release
 getenforce
 findmnt /var/log /home /tmp /var/tmp
 findmnt -no OPTIONS /tmp
 sudo ss -tlnp | egrep '2222|35443'
 curl -s http://127.0.0.1:35443/
-sudo -k; sudo id   # password: RedHat
-sudo reboot
-# reconnect and re-check
+sudo firewall-cmd --list-ports
+sudo reboot   # then re-check
 ```
-
----
-
-## Step 7 — Keep this repository current
-
-Track in git (no secrets):
-
-- `image-builder/fedora-lane-gold.toml`
-- this steps file
-- `docs/solution-overview.md`
-- verify notes / screenshots (no credentials)
 
 ---
 
@@ -204,18 +145,10 @@ Track in git (no secrets):
 
 | Requirement | How |
 |-------------|-----|
-| Not hosted Image Builder | Local `osbuild-composer` + TOML |
-| AWS or Azure | `ami` + `vhd` from same blueprint |
-| Partitions / SELinux / ports / users / firewall / container httpd | TOML + first-boot script |
-| Prove on cloud VM | Launch from uploaded image |
-| Survive reboot | systemd first-boot + container unit |
+| Local Image Builder (not hosted) | `image-builder` on RHEL 10 |
+| AWS or Azure | `ami` + `vhd` |
+| Partitions / SELinux / ports / users / firewall / container httpd | TOML + first-boot |
+| Prove on cloud VM | Launch from AMI |
+| Survive reboot | systemd units |
 
----
-
-## Do this next (only Step 1–2)
-
-1. Launch the **image-builder** RHEL EC2 (`t3.xlarge`, 60 GB).  
-2. Install `osbuild-composer` / `composer-cli`.  
-3. Reply with: builder `PUBLIC_IP` + output of `composer-cli compose types`.
-
-Then we push the TOML and start the `ami` compose together.
+More detail: [08-rhel10-rebuild.md](08-rhel10-rebuild.md) · [10-create-toml-blueprint.md](10-create-toml-blueprint.md)

@@ -1,13 +1,14 @@
-# Rebuild gold image on RHEL 10
+# Build the gold image with RHEL 10 Image Builder CLI
 
-The blueprint now sets:
+Uses the current RHEL 10 tool: **`image-builder`**  
+(docs: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)).
+
+Blueprint:
 
 ```toml
 distro = "rhel-10"
 version = "0.1.2"
 ```
-
-Your previous AMI was composed on **RHEL 9.4** — rebuild on a **RHEL 10** Image Builder host.
 
 ## 1) Builder host must be RHEL 10
 
@@ -16,75 +17,84 @@ cat /etc/os-release
 # VERSION_ID should be 10.x
 ```
 
-Install Image Builder from **Red Hat** repos (not Rocky):
+## 2) Install Image Builder
 
 ```bash
-sudo dnf -y install osbuild-composer weldr-client composer-cli \
-  cockpit-composer genisoimage qemu-img
-sudo systemctl enable --now osbuild-composer.socket
-sudo usermod -aG weldr "$USER"
-getent group weldr    # your user must appear here
+sudo dnf install -y image-builder cockpit-image-builder
+sudo image-builder list
+sudo image-builder list-images --filter "distro:rhel-10"
 ```
 
-**Required:** log out of SSH and connect again (or run `newgrp weldr`).  
-Group membership does **not** apply to the current shell until you refresh.
+If `dnf install` or the build cannot reach Red Hat content, fix subscription/CDN first:  
+[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)
+
+## 3) Match `distro` in the blueprint
 
 ```bash
-id | grep weldr       # must show weldr
-composer-cli status show
-composer-cli distros list
+sudo image-builder list-images --filter "distro:rhel-10"
 ```
 
-If you see `you do not have permission to access /run/weldr/api.socket`, follow the full fix:  
-**[09-weldr-permission-fix.md](09-weldr-permission-fix.md)**
-
-## 2) Match `distro` exactly
-
-```bash
-composer-cli distros list
-```
-
-If the list shows e.g. `rhel-10.0` or `rhel-100` instead of `rhel-10`, edit `fedora-lane-gold.toml`:
+If the filter shows e.g. `rhel-10.0` only, set that exact string in `fedora-lane-gold.toml`:
 
 ```toml
-distro = "rhel-10.0"   # use the EXACT string from distros list
+distro = "rhel-10"    # or the exact id from list-images
 ```
 
-## 3) Subscription / CDN must work (before depsolve)
-
-Image Builder downloads RHEL packages from `cdn.redhat.com`. If depsolve fails with
-`Cannot download repomd.xml` / `RepoError`, fix registration first:
-
-**[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)**
-
-Quick check:
+## 4) Build (AMI type)
 
 ```bash
-sudo subscription-manager status
-sudo dnf makecache
-sudo dnf repolist
+cd ~/   # or wherever fedora-lane-gold.toml lives
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --with-buildlog
 ```
 
-## 4) Push + compose
+When finished, note the `.raw` (or similar) artifact in the build output directory.
+
+### Option A — Image Builder uploads to AWS (recommended when AWS is configured)
+
+Prerequisites: AWS credentials on the builder, writable S3 bucket, `vmimport` IAM role  
+([AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)).
 
 ```bash
-composer-cli blueprints push ~/fedora-lane-gold.toml
-composer-cli blueprints depsolve fedora-lane-gold
-composer-cli compose start fedora-lane-gold ami
-composer-cli compose status
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --aws-region us-east-2 \
+  --aws-bucket <YOUR_BUCKET> \
+  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-When FINISHED → `composer-cli compose image UUID` → upload to AWS → new AMI → launch → verify.
+Or upload an already-built file:
 
-## 5) Gold image firewall note (Cockpit)
+```bash
+sudo image-builder upload ./*-ami-*.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket <YOUR_BUCKET> \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
 
-Gold image firewall rule: **only SSH (2222) and httpd (35443)** on the network.
+### Option B — Manual S3 + import-snapshot
 
-So the gold AMI keeps **Cockpit/Web Console closed** in firewall (by design).
+Same as before: Console/CLI bucket, `aws s3 cp`, then import.  
+[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
-For **Web Console / Session Recording / containers GUI**, use a separate RHEL 10 management host (`docs/07-rhel10-web-console-demo.md`).
+## 5) Gold image firewall note
 
-## 6) Verify base OS on the new EC2
+Gold AMI firewall allows only **SSH 2222** and **httpd 35443**.  
+Web Console stays closed on the gold image by design.  
+Day-2 GUI: [docs/07-rhel10-web-console-demo.md](../docs/07-rhel10-web-console-demo.md)
+
+## 6) Launch and verify
+
+```bash
+# After ami-… exists in EC2:
+ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
+```
+
+Test customizations: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
 
 ```bash
 cat /etc/redhat-release

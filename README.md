@@ -31,11 +31,11 @@ Context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)
 README.md                          ← you are here
 image-builder/
   fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
-  12-aws-access-s3-upload.md       ← AWS credentials, S3 bucket, CLI upload
-  10-create-toml-blueprint.md      ← how the TOML is built (password, keys, fields)
-  09-weldr-permission-fix.md      ← composer-cli weldr socket permission fix
-  08-rhel10-rebuild.md             ← compose on a RHEL 10 host
-  README.md                        ← Image Builder notes
+  README.md                        ← RHEL 10 image-builder CLI (current)
+  08-rhel10-rebuild.md             ← build ami/vhd on RHEL 10
+  12-aws-access-s3-upload.md       ← AWS credentials + S3 / upload paths
+  10-create-toml-blueprint.md      ← how the TOML is built
+  11-depsolve-cdn-repo-fix.md     ← CDN / subscription for builds
 docs/
   solution-overview.md             ← architecture + why
   08-verify-customizations.md      ← simple commands to test after AMI launch
@@ -49,7 +49,7 @@ scripts/                           ← optional hardening helpers
 ## Requirements checklist
 
 - [x] Local Image Builder (not the hosted Image Builder cloud service)
-- [x] Base: **RHEL 10** (`distro = "rhel-10"` — confirm with `composer-cli distros list`)
+- [x] Base: **RHEL 10** (`distro = "rhel-10"` — confirm with `image-builder list-images`)
 - [x] Deployable on **AWS** (AMI → EC2); Azure VHD = stretch
 - [x] httpd + index page; **container preferred** on port **35443**
 - [x] Separate mounts `<5 GiB`: `/var/log`, `/home`, `/tmp`, `/var/tmp`
@@ -68,38 +68,33 @@ SSH: public key embedded for `fladmin1` / `fladmin2` in the blueprint.
 
 ### Prerequisites
 
-1. A **RHEL 10** host with local Image Builder (`osbuild-composer` + `weldr-client` / `composer-cli`).  
+1. A **RHEL 10** host with local Image Builder (`image-builder` package / CLI).  
 2. AWS credentials with permission to use S3 and EC2 (never commit them).  
 3. Network access to Red Hat repositories on the builder host.
 
 ### Build (high level)
 
 ```bash
-# On RHEL 10 builder — first time only:
-#   sudo dnf -y install osbuild-composer weldr-client composer-cli ...
-#   sudo systemctl enable --now osbuild-composer.socket
-#   sudo usermod -aG weldr "$USER"
-#   then log out / SSH again  (see image-builder/09-weldr-permission-fix.md)
+# On RHEL 10 builder — install once:
+sudo dnf install -y image-builder cockpit-image-builder
+sudo image-builder list-images --filter "distro:rhel-10"
+# Edit fedora-lane-gold.toml distro= if needed to match EXACTLY
 
-composer-cli distros list
-# Edit image-builder/fedora-lane-gold.toml distro= if needed to match EXACTLY
-
-composer-cli blueprints push /path/to/fedora-lane-gold.toml
-composer-cli blueprints depsolve fedora-lane-gold
-composer-cli compose start fedora-lane-gold ami
-composer-cli compose status
-composer-cli compose image <UUID>
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --with-buildlog
 ```
 
-If the Cockpit UI only lists qcow2/ova/vmdk/iso, prefer CLI type `ami`, or build `.qcow2` → convert to raw → AWS import ([image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)).
+Full guide: [image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)  
+Official: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
 
 ### Publish to AWS + prove
 
-1. Configure AWS access → create S3 bucket in Console → `aws s3 cp` the `.raw` —  
-   [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md).  
-2. `import-snapshot` (needs `vmimport` role) → `register-image` → AMI.  
-3. Launch EC2; security group allows **2222** and **35443** from admin networks.  
-4. Wait for first-boot (Podman pull), then:
+1. Prefer Image Builder AWS upload (`--aws-region` / `--aws-bucket` / `--aws-ami-name`), **or**  
+   Console S3 + `aws s3 cp` + import — [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md).  
+2. Launch EC2; security group allows **2222** and **35443** from admin networks.  
+3. Wait for first-boot (Podman pull), then:
 
 ```bash
 ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>

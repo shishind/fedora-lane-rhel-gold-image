@@ -12,8 +12,8 @@ Use these in the README and solution overview when citing official Red Hat guida
 | Topic | Document |
 |-------|----------|
 | Image Builder overview + output types (`ami`, `vhd`, `qcow2`, …) | [Composing a customized RHEL system image (RHEL 10)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/index) |
-| Install Image Builder + Cockpit plugin | [Installing RHEL image builder](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/installing-rhel-image-builder) |
-| Build images with the CLI | [Creating system images using the RHEL image builder CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-image-builder-cli) |
+| Install Image Builder (`dnf install image-builder`) | [Installing RHEL image builder](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/index) (Chapter 2) |
+| Build images with the **`image-builder` CLI** | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
 | Build images in Web Console (Cockpit) | [Creating system images using the web console](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-gui) |
 | Prepare / upload AMI to AWS (from Image Builder guide) | [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws) |
 | Single-page book (printable/searchable) | [Composing a customized RHEL system image (html-single)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/composing_a_customized_rhel_system_image/index) |

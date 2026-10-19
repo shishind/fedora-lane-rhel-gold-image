@@ -12,15 +12,16 @@ Working file in this repo:
 
 | Item | Why | How we got it |
 |------|-----|----------------|
-| RHEL 10 builder host | Image Builder only runs on RHEL | vSphere / EC2 / on-prem RHEL 10 |
-| `osbuild-composer` + `composer-cli` | Compose from TOML | `dnf install` — see [08-rhel10-rebuild.md](08-rhel10-rebuild.md) |
-| `weldr` group membership | Access `/run/weldr/api.socket` | [09-weldr-permission-fix.md](09-weldr-permission-fix.md) |
-| Exact `distro` id | Blueprint must match builder | `composer-cli distros list` |
+| RHEL 10 builder host | Image Builder only runs on RHEL | EC2 / on-prem RHEL 10 |
+| `image-builder` package / CLI | Compose from TOML | `dnf install image-builder` — see [08-rhel10-rebuild.md](08-rhel10-rebuild.md) |
+| Exact `distro` id | Blueprint must match builder | `sudo image-builder list-images --filter "distro:rhel-10"` |
 | SSH **public** key | Key-only login for fladmins | Admin workstation `.pub` key |
 | Password **hash** (not plain text) | Sudo password for fladmins | `openssl passwd -6` (see below) |
 | Security / layout requirements | What to encode | Partitions, SELinux, ports, firewall, container httpd |
 
 **Never put** AWS keys or private SSH keys (`.pem` / `id_ed25519`) in the TOML or git.
+
+Official blueprint + CLI: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
 
 ---
 
@@ -29,16 +30,16 @@ Working file in this repo:
 On the builder:
 
 ```bash
-composer-cli distros list
+sudo image-builder list-images --filter "distro:rhel-10"
 ```
 
-Copy the **exact** string (examples: `rhel-10`, `rhel-10.0`). Put it here:
+Copy the **exact** distro string (examples: `rhel-10`, `rhel-10.0`). Put it here:
 
 ```toml
 distro = "rhel-10"
 ```
 
-If you use the wrong string, compose fails with a DistroError.
+If you use the wrong string, the build fails with a distro error.
 
 ---
 
@@ -63,8 +64,8 @@ modules = []
 groups = []
 ```
 
-- `name` — blueprint id used by `composer-cli blueprints push` / `compose start`
-- `version` — bump when you change the blueprint (we use `0.1.1`)
+- `name` — blueprint name (`fedora-lane-gold`)
+- `version` — bump when you change the blueprint (we use `0.1.2`)
 - `distro` — must match Step 1
 
 ---
@@ -312,27 +313,21 @@ That is how “httpd in a container, managed as a service” is delivered.
 
 ---
 
-## Step 10 — Push and build from the TOML
+## Step 10 — Build from the TOML (RHEL 10 `image-builder` CLI)
 
 ```bash
 # Copy TOML to builder if edited on Mac
-scp image-builder/fedora-lane-gold.toml lab-user@BUILDER:~/
+scp image-builder/fedora-lane-gold.toml user@BUILDER:~/
 
 # On builder
-composer-cli blueprints push ~/fedora-lane-gold.toml
-composer-cli blueprints show fedora-lane-gold
-composer-cli blueprints depsolve fedora-lane-gold
-composer-cli compose start fedora-lane-gold ami
-composer-cli compose status
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --with-buildlog
 ```
 
-When FINISHED:
-
-```bash
-composer-cli compose image <UUID>
-```
-
-Then upload to AWS (S3 → import-snapshot → register AMI → EC2). See [05-local-ib-steps.md](05-local-ib-steps.md).
+Publish to AWS with Image Builder upload flags, or manual S3 path:  
+[05-local-ib-steps.md](05-local-ib-steps.md) · [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
 ---
 
@@ -341,7 +336,7 @@ Then upload to AWS (S3 → import-snapshot → register AMI → EC2). See [05-lo
 | Requirement | Where in our TOML |
 |-------------|-------------------|
 | RHEL 10 base | `distro = "rhel-10"` |
-| Local IB (not hosted) | Compose with `composer-cli` on RHEL host |
+| Local IB (not hosted) | `image-builder build` on RHEL 10 host |
 | Separate mounts &lt; 5 GiB | `[[customizations.filesystem]]` |
 | SELinux enforcing | first-boot script |
 | `/tmp` noexec | first-boot fstab rewrite |
@@ -374,6 +369,6 @@ sudo passwd fladmin2
 ## Related docs
 
 - [fedora-lane-gold.toml](fedora-lane-gold.toml) — the actual blueprint  
-- [08-rhel10-rebuild.md](08-rhel10-rebuild.md) — RHEL 10 compose host  
-- [09-weldr-permission-fix.md](09-weldr-permission-fix.md) — socket / weldr group  
-- [05-local-ib-steps.md](05-local-ib-steps.md) — AMI / VHD compose flow  
+- [08-rhel10-rebuild.md](08-rhel10-rebuild.md) — RHEL 10 `image-builder` flow  
+- [05-local-ib-steps.md](05-local-ib-steps.md) — AMI / VHD build flow  
+- [09-weldr-permission-fix.md](09-weldr-permission-fix.md) — legacy `composer-cli` only  

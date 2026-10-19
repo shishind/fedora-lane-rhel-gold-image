@@ -1,6 +1,37 @@
-# Publish the gold disk to AWS (credentials → S3 → upload)
+# Publish the gold disk to AWS
 
-After Image Builder produces a disk image (`.raw`), Fedora Lane publishes it to **Amazon S3**, then imports it as an **AMI** for the e-commerce web fleet.
+After RHEL **Image Builder** (`image-builder`) produces an `ami`-type disk (often `.raw`), publish it to AWS as an **AMI**.
+
+Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
+
+Do **not** store Access Keys, Secret Keys, or session tokens in this Git repository.
+
+## Preferred — Image Builder uploads for you
+
+With AWS credentials configured on the builder, an S3 bucket, and the `vmimport` role:
+
+```bash
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+Or upload an existing raw file:
+
+```bash
+sudo image-builder upload ./*-ami-*.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+---
+
+## Alternate — Console S3 + `aws s3 cp` + import-snapshot
 
 Example compose output:
 
@@ -9,7 +40,7 @@ d951ae1c-382e-47f1-9990-f89544935eb8-image.raw
 ```
 
 ```text
-[ Image Builder .raw on RHEL builder ]
+[ image-builder build ami → .raw ]
         ↓
 [ Configure AWS credentials on the builder ]
         ↓
@@ -19,8 +50,6 @@ d951ae1c-382e-47f1-9990-f89544935eb8-image.raw
         ↓
 [ import-snapshot → register AMI → launch EC2 ]
 ```
-
-Do **not** store Access Keys, Secret Keys, or session tokens in this Git repository.
 
 ---
 

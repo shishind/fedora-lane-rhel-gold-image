@@ -1,72 +1,87 @@
-# Local Image Builder (TOML) — AWS + Azure
+# Local RHEL Image Builder (RHEL 10 CLI)
 
-Fedora Lane’s gold image is built with **local** Image Builder on a RHEL host (`osbuild-composer` + `composer-cli` + a TOML blueprint).  
-Do **not** use the hosted Image Builder cloud service for this standard.
+Fedora Lane’s gold image is built with **local** RHEL Image Builder on a RHEL 10 host — package `image-builder`, command `image-builder`.
 
-One blueprint can produce:
+Official docs:
 
-- `ami` → upload/register on AWS  
-- `vhd` (or related Azure type) → upload to Azure (stretch)
+- [Composing a customized RHEL system image (RHEL 10)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/index)
+- [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
+- [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
 
-## Blueprint file
+Do **not** use the hosted Image Builder service on console.redhat.com for this standard.
 
-`fedora-lane-gold.toml`
+> **Note:** Older guides used `composer-cli` + `osbuild-composer` (Weldr). On RHEL 10, use the current **`image-builder`** CLI below. The blueprint TOML format stays the same.
 
-It encodes partitions, users, firewall ports, SSH hardening, and a first-boot script for SELinux ports + Podman httpd on 35443.
+## Blueprint
 
-**How the TOML is structured** (password hash, SSH key, every block):  
-[10-create-toml-blueprint.md](10-create-toml-blueprint.md)
+`fedora-lane-gold.toml` — packages, mounts, users, firewall, SSH, first-boot Podman httpd.
 
-## What you need
+How the file is structured: [10-create-toml-blueprint.md](10-create-toml-blueprint.md)
 
-A **RHEL 9/10** builder host (EC2, on-prem VM, or similar) with:
+## Install (RHEL 10 builder)
 
-```bash
-sudo dnf install -y osbuild-composer composer-cli cockpit-composer weldr-client
-sudo systemctl enable --now osbuild-composer.socket
-sudo usermod -aG weldr "$USER"
-# log out / SSH again (or: newgrp weldr), then:
-id | grep weldr
-composer-cli status
-composer-cli distros list
-```
-
-If you get **permission denied on `/run/weldr/api.socket`**, see  
-[09-weldr-permission-fix.md](09-weldr-permission-fix.md).
-
-If **depsolve** fails with CDN / `repomd.xml` / `RepoError`, see  
-[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md).
-
-After you have a `.raw` image: AWS credentials, Console S3 bucket, CLI upload —  
-[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md).
-
-## Build flow (high level)
-
-1. Set the admin SSH **public** key and password hash in `fedora-lane-gold.toml` (see [10-create-toml-blueprint.md](10-create-toml-blueprint.md)).  
-2. Push blueprint:
+Host must be subscribed (BaseOS + AppStream) and able to reach Red Hat CDN.
 
 ```bash
-composer-cli blueprints push fedora-lane-gold.toml
-composer-cli blueprints depsolve fedora-lane-gold
+sudo dnf install -y image-builder cockpit-image-builder
+sudo image-builder list
+sudo image-builder list-images --filter "distro:rhel-10"
 ```
 
-3. Compose for AWS:
+Run builds as **root** (`sudo`), per Red Hat documentation.
+
+CDN / subscription problems: [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)
+
+## Build the gold image
 
 ```bash
-composer-cli compose start fedora-lane-gold ami
-# note COMPOSE_ID, wait until FINISHED
-composer-cli compose image COMPOSE_ID
+cd /path/to/image-builder   # directory with fedora-lane-gold.toml
+
+# Confirm distro id matches blueprint (distro = "rhel-10")
+sudo image-builder list-images --filter "distro:rhel-10"
+
+# Build AWS disk image (ami type). Output is typically a .raw under the working directory.
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --with-buildlog
 ```
 
-4. Compose for Azure (stretch):
+Optional: build and register in AWS in one flow (needs AWS credentials, S3 bucket, `vmimport` role):
 
 ```bash
-composer-cli compose start fedora-lane-gold vhd
+sudo image-builder build ami \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10 \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-5. Upload to AWS/Azure, launch a VM, and verify after reboot (first-boot must have run once).
+Or build locally, then upload an existing `.raw`:
 
-Official references: RHEL docs *Deploying RHEL on Amazon Web Services* / *on Microsoft Azure*.
+```bash
+sudo image-builder upload ./rhel-10*-ami-*.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+Manual S3 + `import-snapshot` path (what we also documented):  
+[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+
+Azure stretch:
+
+```bash
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10
+```
+
+## Full rebuild guide
+
+[08-rhel10-rebuild.md](08-rhel10-rebuild.md)
 
 ## Spec coverage
 
@@ -74,16 +89,12 @@ Official references: RHEL docs *Deploying RHEL on Amazon Web Services* / *on Mic
 |-------------|----------------------|
 | Separate `/var/log` `/home` `/tmp` `/var/tmp` | `customizations.filesystem` |
 | SELinux enforcing | first-boot script |
-| `/tmp` noexec | remount in first-boot (verify after boot) |
-| SSH 2222, no root, no password | sshd drop-in file |
+| `/tmp` noexec | first-boot fstab |
+| SSH 2222, no root, no password | sshd drop-in |
 | httpd container :35443 | first-boot Podman + systemd |
 | fladmins + sudo password | users + sudoers.d |
-| Firewall only SSH+httpd | firewall customization + first-boot |
+| Firewall only SSH+httpd | firewall + first-boot |
 | Survive reboot | systemd units enabled |
-| AWS + Azure | `ami` and `vhd` compose types |
+| AWS + Azure | `ami` and `vhd` image types |
 
-**Always verify** on a cloud VM with `verify/verify.sh`.
-
-## Marketplace AMI vs gold AMI
-
-A random marketplace RHEL AMI is only a starting OS. This project’s gold image is a **defined blueprint** composed to AMI so every web node is identical. You still launch and run that AMI in AWS (or Azure) for day-2 proof.
+Verify after launch: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
