@@ -23,6 +23,9 @@ That matches stretch goal #2 (two cloud images from one standard).
 
 It encodes partitions, users, firewall ports, SSH hardening files, and a first-boot script for SELinux ports + Podman httpd on 35443.
 
+**How we created it** (password hash, SSH key, every block):  
+[10-create-toml-blueprint.md](10-create-toml-blueprint.md)
+
 ## What you need
 
 Image Builder does **not** run natively on Mac. You need a **RHEL 9/10 machine** (another EC2, RHDP VM, or local UTM RHEL) with:

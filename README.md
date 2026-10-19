@@ -31,6 +31,8 @@ Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.m
 README.md                          ← you are here
 image-builder/
   fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
+  10-create-toml-blueprint.md      ← how we built the TOML (password, keys, fields)
+  09-weldr-permission-fix.md      ← composer-cli weldr socket permission fix
   08-rhel10-rebuild.md             ← how to compose on a RHEL 10 host
   README.md                        ← Image Builder notes
 docs/
