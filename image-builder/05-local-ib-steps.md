@@ -137,10 +137,21 @@ You get an AMI-related artifact (often `.raw` or instructions file depending on 
 # upload to S3 → ec2 import-snapshot / import-image → register AMI
 ```
 
+**AWS access + Console S3 bucket + CLI upload of `.raw`:**  
+[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+
+Example (what we ran on the RHEL 10 builder after creating the bucket in Console):
+
+```bash
+aws s3 cp \
+  d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
+```
+
 Many RHEL versions also support uploading via `composer-cli compose image` + AWS CLI upload scripts in the docs. If your output is `*.ami` or includes upload metadata, use that.
 
 **Simpler RHDP pattern many cohorts use:**  
-After compose finishes, use the documented `aws` upload from the Image Builder AWS chapter for your RHEL version. If stuck, paste `ls -lh ~/images` and `composer-cli compose status` and we’ll pick the exact upload commands.
+After compose finishes, follow [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md). If stuck, paste `ls -lh ~/images` and `composer-cli compose status`.
 
 ---
 

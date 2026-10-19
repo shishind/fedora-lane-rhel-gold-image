@@ -46,6 +46,9 @@ If you get **permission denied on `/run/weldr/api.socket`**, see
 If **depsolve** fails with CDN / `repomd.xml` / `RepoError`, see  
 [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md) (register the host + fix `dnf`).
 
+After you have a `.raw` image: configure AWS, create an S3 bucket in the Console,  
+upload with CLI — [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md).
+
 ## Build flow (high level)
 
 1. Edit `fedora-lane-gold.toml` — replace `SSHKEY_REPLACE_ME` with your `fedora-lane-lab.pub` contents.  

@@ -31,6 +31,7 @@ Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.m
 README.md                          ← you are here
 image-builder/
   fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
+  12-aws-access-s3-upload.md       ← AWS creds + Console S3 bucket + CLI raw upload
   10-create-toml-blueprint.md      ← how we built the TOML (password, keys, fields)
   09-weldr-permission-fix.md      ← composer-cli weldr socket permission fix
   08-rhel10-rebuild.md             ← how to compose on a RHEL 10 host
@@ -94,9 +95,11 @@ If Cockpit Image Builder only lists qcow2/ova/vmdk/iso: that is normal for local
 
 ### Publish to AWS + prove
 
-1. Upload disk to S3 → `import-snapshot` (needs `vmimport` role) → `register-image` → AMI.  
-2. Launch EC2; security group: **2222** and **35443** from your IP.  
-3. Wait for first-boot (Podman pull), then:
+1. Configure AWS access → create S3 bucket in Console → `aws s3 cp` the `.raw` —  
+   [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md).  
+2. `import-snapshot` (needs `vmimport` role) → `register-image` → AMI.  
+3. Launch EC2; security group: **2222** and **35443** from your IP.  
+4. Wait for first-boot (Podman pull), then:
 
 ```bash
 ssh -i <your-lab-key> -p 2222 fladmin1@<PUBLIC_IP>
