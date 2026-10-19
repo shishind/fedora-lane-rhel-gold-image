@@ -1,34 +1,25 @@
 # Local Image Builder (TOML) — AWS + Azure
 
-## Hosted vs local (read this)
+Fedora Lane’s gold image is built with **local** Image Builder on a RHEL host (`osbuild-composer` + `composer-cli` + a TOML blueprint).  
+Do **not** use the hosted Image Builder cloud service for this standard.
 
-| Method | Allowed by FASTER brief? |
-|--------|---------------------------|
-| **Hosted** Image Builder (console.redhat.com / cloud service) | **No** — brief says do not use hosted Image Builder |
-| **Local** Image Builder on a RHEL box (`osbuild-composer` + `composer-cli` + TOML blueprint) | **Often what mentors mean** — confirm with your POD/mentor |
-| Manual EC2 harden → `create-image` | Yes — we already documented this |
-
-If mentors said “use Image Builder + TOML for AWS and Azure,” they almost always mean **local** Image Builder with one blueprint producing:
+One blueprint can produce:
 
 - `ami` → upload/register on AWS  
-- `vhd` (or Azure type) → upload to Azure  
+- `vhd` (or related Azure type) → upload to Azure (stretch)
 
-That matches stretch goal #2 (two cloud images from one standard).
-
-## Can we use a TOML file?
-
-**Yes.** Blueprints are TOML. File in this folder:
+## Blueprint file
 
 `fedora-lane-gold.toml`
 
-It encodes partitions, users, firewall ports, SSH hardening files, and a first-boot script for SELinux ports + Podman httpd on 35443.
+It encodes partitions, users, firewall ports, SSH hardening, and a first-boot script for SELinux ports + Podman httpd on 35443.
 
-**How we created it** (password hash, SSH key, every block):  
+**How the TOML is structured** (password hash, SSH key, every block):  
 [10-create-toml-blueprint.md](10-create-toml-blueprint.md)
 
 ## What you need
 
-Image Builder does **not** run natively on Mac. You need a **RHEL 9/10 machine** (another EC2, RHDP VM, or local UTM RHEL) with:
+A **RHEL 9/10** builder host (EC2, on-prem VM, or similar) with:
 
 ```bash
 sudo dnf install -y osbuild-composer composer-cli cockpit-composer weldr-client
@@ -44,14 +35,14 @@ If you get **permission denied on `/run/weldr/api.socket`**, see
 [09-weldr-permission-fix.md](09-weldr-permission-fix.md).
 
 If **depsolve** fails with CDN / `repomd.xml` / `RepoError`, see  
-[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md) (register the host + fix `dnf`).
+[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md).
 
-After you have a `.raw` image: configure AWS, create an S3 bucket in the Console,  
-upload with CLI — [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md).
+After you have a `.raw` image: AWS credentials, Console S3 bucket, CLI upload —  
+[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md).
 
 ## Build flow (high level)
 
-1. Edit `fedora-lane-gold.toml` — replace `SSHKEY_REPLACE_ME` with your `fedora-lane-lab.pub` contents.  
+1. Set the admin SSH **public** key and password hash in `fedora-lane-gold.toml` (see [10-create-toml-blueprint.md](10-create-toml-blueprint.md)).  
 2. Push blueprint:
 
 ```bash
@@ -73,17 +64,17 @@ composer-cli compose image COMPOSE_ID
 composer-cli compose start fedora-lane-gold vhd
 ```
 
-5. Upload AMI/VHD to AWS/Azure OPEN envs, launch a VM, prove specs after reboot (first-boot script must have run).
+5. Upload to AWS/Azure, launch a VM, and verify after reboot (first-boot must have run once).
 
-Exact upload steps: RHEL docs “Deploying RHEL on Amazon Web Services” / “on Microsoft Azure” (Image Builder image types).
+Official references: RHEL docs *Deploying RHEL on Amazon Web Services* / *on Microsoft Azure*.
 
-## Spec coverage notes
+## Spec coverage
 
-| Spec | In TOML / first-boot |
-|------|----------------------|
+| Requirement | In TOML / first-boot |
+|-------------|----------------------|
 | Separate `/var/log` `/home` `/tmp` `/var/tmp` | `customizations.filesystem` |
 | SELinux enforcing | first-boot script |
-| `/tmp` noexec | remount in first-boot (verify after boot!) |
+| `/tmp` noexec | remount in first-boot (verify after boot) |
 | SSH 2222, no root, no password | sshd drop-in file |
 | httpd container :35443 | first-boot Podman + systemd |
 | fladmins + sudo password | users + sudoers.d |
@@ -91,11 +82,8 @@ Exact upload steps: RHEL docs “Deploying RHEL on Amazon Web Services” / “o
 | Survive reboot | systemd units enabled |
 | AWS + Azure | `ami` and `vhd` compose types |
 
-**Always verify on a cloud VM** with `verify/verify.sh` — first-boot must succeed once.
+**Always verify** on a cloud VM with `verify/verify.sh`.
 
-## Mentors said “don’t use AWS AMI”?
+## Marketplace AMI vs gold AMI
 
-They usually mean: don’t start from a random marketplace AMI and call that the gold image **without** a defined build process.  
-Using Image Builder to **produce** an AMI (or producing AMI via local IB) is different from “just launch RHEL and claim it’s gold.”
-
-Either way you still **upload and run** on AWS/Azure OPEN — the brief requires provisioning a VM from your gold image in cloud.
+A random marketplace RHEL AMI is only a starting OS. This project’s gold image is a **defined blueprint** composed to AMI so every web node is identical. You still launch and run that AMI in AWS (or Azure) for day-2 proof.

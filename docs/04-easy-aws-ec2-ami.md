@@ -16,14 +16,14 @@ You are **not** using Image Builder. You are configuring by hand.
 ## Before you start (checklist)
 
 - [ ] `aws sts get-caller-identity` works in **this** Terminal
-- [ ] You know your region (often `us-east-1` for RHDP — use what RHDP shows)
-- [ ] Lab key exists: `~/.ssh/fedora-lane-lab` (we created this earlier)
+- [ ] You know your AWS region (e.g. `us-east-1` or `us-east-2`)
+- [ ] Admin SSH key exists: `~/.ssh/fedora-lane-lab` (or your org key)
 
 Set region every time you open a new Terminal:
 
 ```bash
 export PATH="/opt/homebrew/bin:$PATH"
-export AWS_DEFAULT_REGION="us-east-1"   # change if RHDP says otherwise
+export AWS_DEFAULT_REGION="us-east-1"   # use your account region
 aws sts get-caller-identity
 ```
 
@@ -66,7 +66,7 @@ SUBNET_ID=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC_ID \
 echo "SUBNET_ID=$SUBNET_ID"
 ```
 
-Both must look like `vpc-...` and `subnet-...`. If `None`, say so — RHDP sometimes has no “default” VPC and we pick another.
+Both must look like `vpc-...` and `subnet-...`. If `None`, create or select a VPC/subnet in the account.
 
 ---
 

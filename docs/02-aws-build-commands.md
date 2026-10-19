@@ -1,13 +1,13 @@
 # Technical Build Guide — RHEL Gold Image → AWS AMI
 
 > Do **not** use the hosted Image Builder service. Build manually, then import/register as an AMI.  
-> Never commit AWS keys, RHDP passwords, or private SSH keys.
+> Never commit AWS keys or private SSH keys.
 
 Assumptions:
 
-- Builder host: RHEL 9 or RHEL 10 (RHDP VM or local KVM)
-- Target: **AWS** (RHDP AWS Blank OPEN is fine)
-- You have `sudo` and a Red Hat subscription (or RHDP provides repos)
+- Builder host: RHEL 9 or RHEL 10 (EC2 or on-prem)
+- Target: **AWS**
+- You have `sudo` and Red Hat repository access on the builder
 
 Replace placeholders:
 
@@ -20,14 +20,14 @@ Replace placeholders:
 ## 0) Prep on your laptop
 
 ```bash
-# Optional: generate a keypair used only for this lab
+# Optional: generate an admin keypair for fladmins
 ssh-keygen -t ed25519 -f ~/.ssh/fedora-lane-lab -C "fedora-lane-lab" -N ""
 
-# Show public key (paste into admin authorized_keys later)
+# Show public key (paste into admin authorized_keys / blueprint)
 cat ~/.ssh/fedora-lane-lab.pub
 ```
 
-Install AWS CLI where you will run import commands (often the RHDP bastion or your laptop with OPEN env creds).
+Install AWS CLI where you will run import commands (builder host or operator workstation).
 
 ```bash
 aws --version
@@ -391,7 +391,7 @@ aws ec2 import-image \
 aws ec2 describe-import-image-tasks --region REGION
 ```
 
-### If building inside RHDP / EC2 already
+### If building inside EC2 already
 
 You can skip file import and **create an AMI from the stopped builder instance**:
 
@@ -407,7 +407,7 @@ aws ec2 create-image \
   --no-reboot
 ```
 
-For FASTER/RHDP this is often the **fastest valid “manual” path**: configure the instance by hand, then `create-image`. Hosted Image Builder service is what you must avoid — not AMI creation from a configured VM.
+A valid manual path: configure the instance by hand, then `create-image`. Avoid the **hosted** Image Builder cloud service — creating an AMI from a configured VM is fine.
 
 ---
 

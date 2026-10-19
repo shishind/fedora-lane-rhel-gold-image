@@ -1,17 +1,17 @@
-# Fedora Lane — RHEL 10 Gold Image (Server/Cloud OS TDP)
+# Fedora Lane — RHEL 10 Gold Image
 
-**Audience:** Fedora Lane stakeholders (Casey Novak, Alex Lee, Ren Tanaka) and Red Hat consultants reproducing this lab.  
-**Goal:** A secure, standardized **Red Hat Enterprise Linux 10** gold image for the e-commerce **web server** fleet on AWS (Azure stretch).
+**Audience:** Fedora Lane infrastructure, security, and Linux operations (e-commerce web fleet).  
+**Goal:** A secure, standardized **Red Hat Enterprise Linux 10** gold image for web servers on **AWS** (Azure as a stretch).
 
 ---
 
-## What we built (one sentence)
+## What we built
 
 A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as an **AWS AMI**, and proven on a live EC2 instance with hardened SSH, SELinux, separate filesystems, and **httpd in a Podman container**.
 
 ---
 
-## Fedora Lane challenges → this solution
+## Challenges → this solution
 
 | Challenge | What the gold image does |
 |-----------|---------------------------|
@@ -20,7 +20,7 @@ A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as 
 | **Container skills gap** | **httpd** runs in Podman on port **35443**, managed as a **systemd** service |
 
 Full narrative: [docs/solution-overview.md](docs/solution-overview.md)  
-Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)  
+Context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)  
 **Official Red Hat docs:** [docs/redhat-documentation.md](docs/redhat-documentation.md)
 
 ---
@@ -31,25 +31,25 @@ Customer context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.m
 README.md                          ← you are here
 image-builder/
   fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
-  12-aws-access-s3-upload.md       ← AWS creds + Console S3 bucket + CLI raw upload
-  10-create-toml-blueprint.md      ← how we built the TOML (password, keys, fields)
+  12-aws-access-s3-upload.md       ← AWS credentials, S3 bucket, CLI upload
+  10-create-toml-blueprint.md      ← how the TOML is built (password, keys, fields)
   09-weldr-permission-fix.md      ← composer-cli weldr socket permission fix
-  08-rhel10-rebuild.md             ← how to compose on a RHEL 10 host
+  08-rhel10-rebuild.md             ← compose on a RHEL 10 host
   README.md                        ← Image Builder notes
 docs/
-  solution-overview.md             ← client-facing architecture + why
+  solution-overview.md             ← architecture + why
   redhat-documentation.md          ← official Red Hat doc links
-  07-rhel10-web-console-demo.md    ← optional day-2 Web Console demo (RHDP)
+  07-rhel10-web-console-demo.md    ← optional day-2 Web Console operations
 verify/verify.sh                   ← post-boot proof checklist
-scripts/                           ← optional hardening helpers (EC2 path)
+scripts/                           ← optional hardening helpers
 ```
 
 ---
 
-## Spec checklist (Expansion Pack)
+## Requirements checklist
 
-- [x] Local Image Builder (not **hosted** Image Builder service)
-- [x] Base: **RHEL 10** (`distro = "rhel-10"` in TOML — confirm exact id with `composer-cli distros list` / `image-builder list`)
+- [x] Local Image Builder (not the hosted Image Builder cloud service)
+- [x] Base: **RHEL 10** (`distro = "rhel-10"` — confirm with `composer-cli distros list`)
 - [x] Deployable on **AWS** (AMI → EC2); Azure VHD = stretch
 - [x] httpd + index page; **container preferred** on port **35443**
 - [x] Separate mounts `<5 GiB`: `/var/log`, `/home`, `/tmp`, `/var/tmp`
@@ -59,8 +59,8 @@ scripts/                           ← optional hardening helpers (EC2 path)
 - [x] Firewall: only SSH + httpd ports
 - [x] Survives reboot; services enabled at boot
 
-Lab sudo password (demo only): see comment in `image-builder/fedora-lane-gold.toml`  
-SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
+Admin sudo password (environment-specific): see comment in `image-builder/fedora-lane-gold.toml`.  
+SSH: public key embedded for `fladmin1` / `fladmin2` in the blueprint.
 
 ---
 
@@ -68,9 +68,9 @@ SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
 
 ### Prerequisites
 
-1. A **RHEL 10** machine with local Image Builder (`image-builder` / `osbuild-composer` + `weldr-client`) — not macOS.  
-2. AWS sandbox/OPEN credentials (never commit them).  
-3. Network access to Red Hat repos on the builder host.
+1. A **RHEL 10** host with local Image Builder (`osbuild-composer` + `weldr-client` / `composer-cli`).  
+2. AWS credentials with permission to use S3 and EC2 (never commit them).  
+3. Network access to Red Hat repositories on the builder host.
 
 ### Build (high level)
 
@@ -81,52 +81,51 @@ SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
 #   sudo usermod -aG weldr "$USER"
 #   then log out / SSH again  (see image-builder/09-weldr-permission-fix.md)
 
-composer-cli distros list          # confirm rhel-10 / rhel-10.x name
+composer-cli distros list
 # Edit image-builder/fedora-lane-gold.toml distro= if needed to match EXACTLY
 
-composer-cli blueprints push <Path-to-file>/fedora-lane-gold.toml
+composer-cli blueprints push /path/to/fedora-lane-gold.toml
 composer-cli blueprints depsolve fedora-lane-gold
 composer-cli compose start fedora-lane-gold ami
 composer-cli compose status
 composer-cli compose image <UUID>
 ```
 
-If Cockpit Image Builder only lists qcow2/ova/vmdk/iso: that is normal for local UI. Prefer CLI `ami`, **or** build `.qcow2` → convert to raw → AWS import (see [image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)).
+If the Cockpit UI only lists qcow2/ova/vmdk/iso, prefer CLI type `ami`, or build `.qcow2` → convert to raw → AWS import ([image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)).
 
 ### Publish to AWS + prove
 
 1. Configure AWS access → create S3 bucket in Console → `aws s3 cp` the `.raw` —  
    [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md).  
 2. `import-snapshot` (needs `vmimport` role) → `register-image` → AMI.  
-3. Launch EC2; security group: **2222** and **35443** from your IP.  
+3. Launch EC2; security group allows **2222** and **35443** from admin networks.  
 4. Wait for first-boot (Podman pull), then:
 
 ```bash
-ssh -i <your-lab-key> -p 2222 fladmin1@<PUBLIC_IP>
+ssh -i <admin-ssh-key> -p 2222 fladmin1@<PUBLIC_IP>
 sudo bash verify/verify.sh
 curl -s http://127.0.0.1:35443/
 cat /etc/redhat-release    # expect RHEL 10.x
 sudo reboot                # re-check after reboot
 ```
 
-Detailed AWS notes: [docs/04-easy-aws-ec2-ami.md](docs/04-easy-aws-ec2-ami.md)
+Also see: [docs/04-easy-aws-ec2-ami.md](docs/04-easy-aws-ec2-ami.md)
 
 ---
 
-## Live walkthrough (end-user view)
-
-From the customer’s perspective (Casey / Alex):
+## Day-2 operations (end-user view)
 
 1. New web server = launch from the **gold AMI** (no snowflake install).  
 2. Admins connect with keys on **2222** as named users.  
 3. Site answers on **35443**; container is a systemd service.  
 4. Security baseline is already on: SELinux, firewall, partitions, sudo policy.
 
-Optional day-2 GUI story (Web Console / Session Recording): [docs/07-rhel10-web-console-demo.md](docs/07-rhel10-web-console-demo.md) on RHDP **RHEL 10 Base** (gold AMI firewall still only 2222+35443 per brief).
+Optional GUI management (Web Console / Session Recording): [docs/07-rhel10-web-console-demo.md](docs/07-rhel10-web-console-demo.md).  
+Gold AMI firewall still allows only **2222** and **35443**.
 
 ---
 
-## Recommended next step (for Fedora Lane)
+## Recommended next step
 
 1. Pilot this **RHEL 10** gold AMI on **staging** web nodes.  
 2. Enable **Session Recording / Web Console** for production admin access.  
@@ -135,16 +134,6 @@ Optional day-2 GUI story (Web Console / Session Recording): [docs/07-rhel10-web-
 
 ---
 
-## Publishing this repository (FASTER)
+## Repository hygiene
 
-**Preferred (Core Pack):** Consulting **GitLab** — cohort sub-group under the FASTER group.
-
-```bash
-cd ~/Projects/fedora-lane-rhel-gold-image
-git remote add origin <YOUR_FASTER_GITLAB_REPO_URL>
-git push -u origin main
-```
-
-**Alternate (Expansion Pack):** private GitHub + add `mflaim-eng` for review.
-
-Do **not** push `.pem`, `.aws/`, RHDP passwords, or raw disk images.
+Do **not** commit Access Keys, Secret Keys, session tokens, private SSH keys (`.pem`), or raw disk images.

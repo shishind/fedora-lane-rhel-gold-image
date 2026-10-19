@@ -123,12 +123,12 @@ composer-cli compose log "$COMPOSE_ID" | tail -100
 
 ---
 
-## 5) Upload AMI to AWS (OPEN env)
+## 5) Upload AMI to AWS
 
-On a machine with AWS CLI + working OPEN credentials (Mac or the RHEL 9 host):
+On a machine with AWS CLI and credentials for the target account (builder host or operator workstation):
 
 ```bash
-export AWS_DEFAULT_REGION=us-east-2   # or your RHDP region
+export AWS_DEFAULT_REGION=us-east-2   # use your AWS region
 aws sts get-caller-identity
 ```
 
@@ -223,7 +223,7 @@ composer-cli compose start fedora-lane-gold vhd
 composer-cli compose image AZURE-UUID
 ```
 
-Upload the VHD to Azure Blank OPEN and create a VM from it (stretch goal #2).
+Upload the VHD to Azure and create a VM from it (stretch).
 
 ---
 

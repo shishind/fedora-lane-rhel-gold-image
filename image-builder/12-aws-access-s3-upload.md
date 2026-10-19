@@ -1,85 +1,79 @@
-# AWS only — configure access, create S3 bucket (console), upload `.raw` (CLI)
+# Publish the gold disk to AWS (credentials → S3 → upload)
 
-Use this after Image Builder finishes a compose and you have a disk file such as:
+After Image Builder produces a disk image (`.raw`), Fedora Lane publishes it to **Amazon S3**, then imports it as an **AMI** for the e-commerce web fleet.
+
+Example compose output:
 
 ```text
 d951ae1c-382e-47f1-9990-f89544935eb8-image.raw
 ```
 
-Goal: put that gold disk into **S3**, then later import it as a snapshot → AMI → EC2.
-
 ```text
-[ composer-cli compose image ] → .raw on builder
+[ Image Builder .raw on RHEL builder ]
         ↓
-[ AWS credentials configured ]
+[ Configure AWS credentials on the builder ]
         ↓
-[ Console: create S3 bucket (+ optional folder) ]
+[ AWS Console: create S3 bucket (+ folder) ]
         ↓
-[ CLI: aws s3 cp … .raw → s3://bucket/prefix/ ]
+[ CLI: aws s3 cp .raw → s3://bucket/prefix/ ]
         ↓
-[ Next: import-snapshot → register-image → launch ]
+[ import-snapshot → register AMI → launch EC2 ]
 ```
+
+Do **not** store Access Keys, Secret Keys, or session tokens in this Git repository.
 
 ---
 
-## Part 1 — Install AWS CLI (on the RHEL builder)
+## Part 1 — Install AWS CLI (on the RHEL builder host)
 
-If `aws` is already installed, skip install:
+Skip if `aws --version` already works.
 
 ```bash
-# Official installer (as root or with sudo)
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
 unzip -o /tmp/awscliv2.zip -d /tmp
 sudo /tmp/aws/install --update --install-dir /usr/local/aws-cli --bin-dir /usr/local/bin
 
 hash -r
 /usr/local/bin/aws --version
-# example: aws-cli/2.38.1 Python/3.14.6 Linux/... exe/x86_64.rhel.10
 ```
 
 ---
 
 ## Part 2 — Configure AWS access (credentials)
 
-Use **temporary OPEN / RHDP sandbox** keys from the lab portal.  
-**Never** commit keys to git.
+The builder host needs an IAM identity that can use **S3** (and later **EC2** import). Use credentials from your organization’s AWS account (IAM user access keys, or temporary credentials from your cloud team / identity provider).
 
-### 2a. Get keys from the AWS / RHDP console
+### 2a. Obtain credentials
 
-1. Open your lab AWS access page (RHDP OPEN / demo portal).  
-2. Sign in to the **AWS Console** with the lab account.  
-3. Copy (or create) credentials that include:
+1. Sign in to the **AWS Management Console** for the Fedora Lane (or project) AWS account.  
+2. Create or retrieve IAM credentials with permission to write to S3 in the target region.  
+3. You need:
 
-| Value | Env var |
-|-------|---------|
+| Value | Environment variable |
+|-------|----------------------|
 | Access key ID | `AWS_ACCESS_KEY_ID` |
 | Secret access key | `AWS_SECRET_ACCESS_KEY` |
-| Session token (if temporary) | `AWS_SESSION_TOKEN` |
+| Session token (if using temporary credentials) | `AWS_SESSION_TOKEN` |
 | Region (e.g. `us-east-2`) | `AWS_DEFAULT_REGION` |
 
-### 2b. Put credentials on the builder
+### 2b. Apply credentials on the builder
 
-**Option A — environment variables (good for temporary lab keys):**
+**Option A — environment variables** (fits temporary credentials well):
 
 ```bash
 export AWS_ACCESS_KEY_ID="AKIA...or ASIA..."
 export AWS_SECRET_ACCESS_KEY="..."
-export AWS_SESSION_TOKEN="..."          # required for many OPEN/temp keys
-export AWS_DEFAULT_REGION="us-east-2"   # use YOUR lab region
+export AWS_SESSION_TOKEN="..."            # only if your credentials include a token
+export AWS_DEFAULT_REGION="us-east-2"     # region where the bucket and AMI will live
 
 aws sts get-caller-identity
 ```
 
-`get-caller-identity` must print `Account`, `Arn`, `UserId`. If it fails, fix keys/region before creating buckets.
-
-**Option B — `aws configure` (stores under `~/.aws/`):**
+**Option B — shared config file:**
 
 ```bash
 aws configure
-# AWS Access Key ID
-# AWS Secret Access Key
-# Default region name  (e.g. us-east-2)
-# Default output format  json
+# Access Key ID / Secret Access Key / region / output = json
 
 # If you have a session token:
 aws configure set aws_session_token "$AWS_SESSION_TOKEN"
@@ -87,20 +81,21 @@ aws configure set aws_session_token "$AWS_SESSION_TOKEN"
 aws sts get-caller-identity
 ```
 
+`get-caller-identity` must return `Account`, `Arn`, and `UserId` before you create buckets or upload.
+
 ---
 
 ## Part 3 — Create the S3 bucket in the AWS Console
 
-What we did in the lab: create the bucket (and folder) in the **console**, then upload with the **CLI**.
+Create storage in the **console**, then upload the large `.raw` with the **CLI**.
 
-1. In AWS Console, open **S3**.  
-2. Click **Create bucket**.  
-3. **Bucket name** — globally unique, e.g. `fedora-lane-gold-1792315114`  
-   (a timestamp suffix avoids “bucket already exists”).  
-4. **AWS Region** — same region you will use for EC2 / import-snapshot (e.g. `us-east-2`).  
-5. Leave defaults unless the lab says otherwise → **Create bucket**.  
-6. Open the new bucket → **Create folder** (optional but useful), e.g. `Fedora-Lane-Images/`.  
-7. Note for CLI:
+1. Open **S3** in the AWS Console.  
+2. **Create bucket**.  
+3. **Bucket name** — globally unique, for example `fedora-lane-gold-1792315114`.  
+4. **AWS Region** — same region you will use for EC2 / snapshot import.  
+5. Create the bucket (defaults are fine unless your security team requires specific encryption or blocking settings).  
+6. Open the bucket → **Create folder**, for example `Fedora-Lane-Images/`.  
+7. Record:
 
 ```text
 Bucket:  fedora-lane-gold-1792315114
@@ -108,7 +103,7 @@ Prefix:  Fedora-Lane-Images/
 URI:     s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
 ```
 
-You can also create the bucket with CLI instead of console:
+CLI alternative:
 
 ```bash
 BUCKET="fedora-lane-gold-$(date +%s)"
@@ -118,22 +113,20 @@ echo "BUCKET=$BUCKET"
 
 ---
 
-## Part 4 — Upload the Image Builder `.raw` with CLI
+## Part 4 — Upload the `.raw` with the AWS CLI
 
-On the builder, go to the directory that has the compose output (often home or where `composer-cli compose image` wrote the file):
+On the builder, in the directory that contains the compose output:
 
 ```bash
 ls -lh *.raw
-# example:
-# d951ae1c-382e-47f1-9990-f89544935eb8-image.raw   (~12 GiB)
 ```
 
-Upload into the bucket/folder from the console:
+Upload into the bucket and folder:
 
 ```bash
-export AWS_DEFAULT_REGION="us-east-2"   # must match bucket region
+export AWS_DEFAULT_REGION="us-east-2"   # must match the bucket region
 
-/usr/local/bin/aws s3 cp \
+aws s3 cp \
   d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
   s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
 ```
@@ -148,13 +141,7 @@ IMAGE_FILE="d951ae1c-382e-47f1-9990-f89544935eb8-image.raw"
 aws s3 cp "$IMAGE_FILE" "s3://${BUCKET}/${PREFIX}/"
 ```
 
-A 12 GiB upload can take many minutes. Progress looks like:
-
-```text
-Completed 808.0 MiB/12.2 GiB (31.8 MiB/s) with 1 file(s) remaining
-```
-
-Wait until it finishes with no error. Verify:
+Large images (about 12 GiB) take several minutes. Wait until the command exits successfully, then verify:
 
 ```bash
 aws s3 ls "s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/"
@@ -162,9 +149,9 @@ aws s3 ls "s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/"
 
 ---
 
-## Part 5 — Next (after upload completes)
+## Part 5 — Import snapshot and register the AMI
 
-Turn the S3 object into a snapshot, then an AMI. Needs the **`vmimport`** IAM role (one-time per account). See also [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) §5.
+The S3 object is storage only. EC2 boots from an **AMI**. Import needs the account **`vmimport`** IAM role (one-time setup per account).
 
 ```bash
 BUCKET="fedora-lane-gold-1792315114"
@@ -186,27 +173,28 @@ aws ec2 import-snapshot \
   --disk-container file:///tmp/containers.json
 
 aws ec2 describe-import-snapshot-tasks
-# wait until Status=completed → copy SnapshotId (snap-...)
+# wait until Status=completed → note SnapshotId (snap-...)
 ```
 
-Then `register-image` with that `snap-...` and launch EC2 (SSH **2222**, httpd **35443**).
+Register the AMI from that snapshot, launch an EC2 web node, then verify SSH on **2222** and httpd on **35443**.
+
+More detail: [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) (AWS upload section).
 
 ---
 
-## Checklist (what we actually did)
+## Checklist
 
-- [x] AWS CLI v2 installed on RHEL 10 builder (`/usr/local/bin/aws`)  
-- [x] Credentials configured (`aws sts get-caller-identity` works)  
-- [x] Logged into AWS Console → created S3 bucket (+ `Fedora-Lane-Images/` folder)  
-- [x] `aws s3 cp <uuid>-image.raw s3://<bucket>/Fedora-Lane-Images/`  
-- [ ] Wait for upload to 100%  
-- [ ] `import-snapshot` → `register-image` → launch + verify  
+- [ ] AWS CLI installed on the RHEL builder  
+- [ ] Credentials configured (`aws sts get-caller-identity` succeeds)  
+- [ ] S3 bucket (+ folder) created in the Console  
+- [ ] `.raw` uploaded with `aws s3 cp`  
+- [ ] Snapshot imported and AMI registered  
+- [ ] Test EC2 launched and verified  
 
 ---
 
 ## Related docs
 
-- [05-local-ib-steps.md](05-local-ib-steps.md) — compose AMI/VHD  
+- [05-local-ib-steps.md](05-local-ib-steps.md) — compose flow  
 - [08-rhel10-rebuild.md](08-rhel10-rebuild.md) — RHEL 10 builder  
-- [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md) — CDN / subscription  
-- [docs/02-aws-build-commands.md](../docs/02-aws-build-commands.md) — longer AWS command reference  
+- [docs/solution-overview.md](../docs/solution-overview.md) — architecture for Fedora Lane  

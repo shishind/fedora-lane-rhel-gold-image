@@ -9,8 +9,8 @@ Mac only edits files. Builds run on a **RHEL** machine (Image Builder does not r
        ↓
 [ RHEL "builder host" with osbuild-composer ]
        ↓
-  compose type ami  → upload/register on AWS OPEN
-  compose type vhd  → upload on Azure OPEN (stretch)
+  compose type ami  → upload/register on AWS
+  compose type vhd  → upload on Azure (stretch)
        ↓
 [ Launch VM from that image → verify after reboot ]
 ```
@@ -20,7 +20,7 @@ SSH key already embedded: your `fedora-lane-lab` public key.
 
 ---
 
-## Step 1 — Launch a RHEL builder host (AWS OPEN)
+## Step 1 — Launch a RHEL builder host (AWS)
 
 This host **builds** images. It is not the gold web server itself.
 
@@ -44,7 +44,7 @@ aws ec2 run-instances \
 
 **Why t3.xlarge + 60 GB?** Image composition needs CPU/RAM/disk.
 
-SSH in as `ec2-user` (or `cloud-user`), then register RHEL if needed (RHDP images usually already work with repos).
+SSH in as `ec2-user` (or `cloud-user`), then register RHEL with Red Hat Subscription Manager if the host has no CDN repos yet.
 
 ---
 
@@ -150,8 +150,7 @@ aws s3 cp \
 
 Many RHEL versions also support uploading via `composer-cli compose image` + AWS CLI upload scripts in the docs. If your output is `*.ami` or includes upload metadata, use that.
 
-**Simpler RHDP pattern many cohorts use:**  
-After compose finishes, follow [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md). If stuck, paste `ls -lh ~/images` and `composer-cli compose status`.
+After compose finishes, follow [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md).
 
 ---
 
@@ -163,7 +162,7 @@ composer-cli compose start fedora-lane-gold vhd
 composer-cli compose image AZURE_COMPOSE_UUID
 ```
 
-Upload the VHD to Azure OPEN (stretch goal #2).
+Upload the VHD to Azure (stretch).
 
 ---
 
@@ -190,22 +189,22 @@ sudo reboot
 
 ---
 
-## Step 7 — Repo docs for Part 1
+## Step 7 — Keep this repository current
 
-Keep in GitHub (private + `mflaim-eng`):
+Track in git (no secrets):
 
 - `image-builder/fedora-lane-gold.toml`
 - this steps file
-- `docs/solution-overview.md` (update to say “local Image Builder + TOML”)
-- verify notes / screenshots (no secrets)
+- `docs/solution-overview.md`
+- verify notes / screenshots (no credentials)
 
 ---
 
-## Why this meets the brief
+## Why this meets Fedora Lane requirements
 
 | Requirement | How |
 |-------------|-----|
-| Manual / not **hosted** IB | Local `osbuild-composer` + your TOML |
+| Not hosted Image Builder | Local `osbuild-composer` + TOML |
 | AWS or Azure | `ami` + `vhd` from same blueprint |
 | Partitions / SELinux / ports / users / firewall / container httpd | TOML + first-boot script |
 | Prove on cloud VM | Launch from uploaded image |

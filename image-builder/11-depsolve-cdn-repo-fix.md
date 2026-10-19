@@ -102,12 +102,11 @@ sudo subscription-manager identity
 
 Under SCA, `subscription-manager status` may say **Disabled** or **Registered** — that can be normal. Trust `identity` more than “Overall Status”.
 
-#### Path B — Activation key (best for RHDP / org labs)
+#### Path B — Activation key (preferred for organizations)
 
-Get **Org ID** + **activation key** from:
+Get **Org ID** + **activation key** from your Red Hat account admin, or:
 
-- Hybrid Cloud Console → Inventory / Activation Keys, or  
-- Your RHDP / FASTER lab instructions / mentor  
+- Hybrid Cloud Console → Activation Keys  
 
 ```bash
 sudo subscription-manager register \
@@ -116,7 +115,7 @@ sudo subscription-manager register \
 sudo subscription-manager identity
 ```
 
-Do **not** use a made-up key. Wrong key → `Unauthorized: Invalid credentials`.
+Wrong key → `Unauthorized: Invalid credentials`.
 
 #### After register — enable RHEL 10 repos (required when list is empty)
 
@@ -143,7 +142,7 @@ Still “no repositories available”? Then the **Red Hat account has no RHEL su
 3. Create/use an activation key that includes RHEL 10 repo sets  
 4. Re-run Path B  
 
-For FASTER: ask your **Pod Host / mentor** for the lab activation key / Org ID if your personal account has no RHEL SKU.
+If your account shows no RHEL content, ask your organization’s Red Hat subscription owner for an activation key that includes RHEL 10.
 
 ### 4) Prove normal `dnf` can use Red Hat repos
 
@@ -183,112 +182,66 @@ composer-cli compose status
 
 ---
 
-## RHDP / lab-specific notes
+## Environment notes
 
 | Situation | What to do |
 |-----------|------------|
-| RHDP VM already registered | Skip register; run `subscription-manager status` + `dnf makecache` |
-| “Simple Content Access” org | Attach may be automatic; still need valid identity + network to CDN |
-| Proxy required | Configure `/etc/rhsm/rhsm.conf` proxy settings; retry `dnf makecache` |
+| Host already registered | `subscription-manager identity` + `dnf makecache` |
+| Simple Content Access (SCA) org | Register, then **enable** BaseOS/AppStream repos |
+| Proxy required | Configure `/etc/rhsm/rhsm.conf`; retry `dnf makecache` |
 | Clock wrong | `timedatectl`; bad time breaks TLS to CDN |
 | Still failing after register | `sudo journalctl -u rhsmcertd -u osbuild-composer -xe --no-pager \| tail -80` |
 
-**Do not** add unofficial Rocky/CentOS `.repo` files to fix this — Image Builder for `distro = "rhel-10"` must use Red Hat content.
+**Do not** add unofficial Rocky/CentOS `.repo` files — Image Builder for `distro = "rhel-10"` needs Red Hat content.
 
 ---
 
-## Alternatives when `demo.redhat.com` registration fails
+## Alternatives if Customer Portal username/password fails
 
-On **RHDP / demo.redhat.com**, classic  
-`subscription-manager register --username ...` often fails (`Unauthorized`) because:
-
-- Demo VMs are **not** meant to use your personal Customer Portal password  
-- The lab may block or isolate CDN registration  
-- Credentials belong to the **lab org**, not your laptop login  
-
-You still need **some** Red Hat content source for Image Builder. Pick one of these paths.
-
-### Option 1 — Use the lab activation key (preferred on RHDP)
-
-Check the RHDP catalog page / environment instructions / email for:
-
-- **Org ID** (numeric)  
-- **Activation key** name  
+### Option 1 — Organization activation key
 
 ```bash
 sudo subscription-manager unregister || true
 sudo subscription-manager clean
 sudo subscription-manager register \
-  --org '<LAB_ORG_ID>' \
-  --activationkey '<LAB_ACTIVATION_KEY>'
+  --org '<ORG_ID>' \
+  --activationkey '<ACTIVATION_KEY>'
 sudo subscription-manager identity
 sudo subscription-manager repos --list | egrep -i 'rhel-10|baseos|appstream' | head -40
 ```
 
-If the lab guide does not list a key, ask your **Pod Host / mentor** for the FASTER Image Builder activation key. Do not invent one.
-
-### Option 2 — Register with `rhc` (newer client)
-
-Some labs prefer Remote Host Configuration instead of raw `subscription-manager`:
+### Option 2 — `rhc connect`
 
 ```bash
 sudo dnf -y install rhc
-sudo rhc connect --activation-key '<LAB_ACTIVATION_KEY>' --organization '<LAB_ORG_ID>'
-# or interactive:
-# sudo rhc connect
-sudo rhc status
+sudo rhc connect --activation-key '<ACTIVATION_KEY>' --organization '<ORG_ID>'
 sudo dnf makecache
 sudo dnf repolist
 ```
 
-### Option 3 — Build on AWS OPEN RHEL (RHUI) instead of the demo VM
+### Option 3 — Build on cloud RHEL (RHUI)
 
-Cloud RHEL (AWS Marketplace / OPEN) often gets packages via **RHUI**, not Customer Portal login:
+AWS Marketplace RHEL often receives content via **RHUI** without classic portal register:
 
 ```bash
-# On an AWS RHEL 10 builder EC2
 sudo dnf repolist
 sudo dnf makecache
 ```
 
-If `repolist` already shows BaseOS/AppStream **without** `subscription-manager register`, install Image Builder there and compose.  
-This is a valid **local Image Builder** path (still not hosted Image Builder).
+If repos are present, install Image Builder on that EC2 and compose there. See [05-local-ib-steps.md](05-local-ib-steps.md).
 
-High-level:
+### Option 4 — Developer Subscription + activation key
 
-1. Launch RHEL 10 EC2 in AWS OPEN (enough disk, e.g. 60 GB)  
-2. `dnf install osbuild-composer weldr-client ...`  
-3. Fix weldr group → push TOML → depsolve → compose `ami`  
-
-See [05-local-ib-steps.md](05-local-ib-steps.md).
-
-### Option 4 — Personal Developer Subscription (off demo, for content only)
-
-If the demo VM cannot register at all, activate the **no-cost Red Hat Developer Subscription** on **your** Red Hat account (access.redhat.com), create an **activation key** in Hybrid Cloud Console, then register **that** builder (or a personal/lab RHEL VM you control):
-
-```bash
-sudo subscription-manager register \
-  --org '<YOUR_ORG_ID>' \
-  --activationkey '<YOUR_DEV_ACTIVATION_KEY>'
-```
-
+Activate a Red Hat Developer Subscription, create an activation key in Hybrid Cloud Console, then register the builder.  
 Docs: [Getting started with activation keys](https://docs.redhat.com/en/documentation/subscription_central/1-latest/html/getting_started_with_activation_keys_on_the_hybrid_cloud_console/index).
 
-### Option 5 — What usually does **not** work on demo
+### Avoid
 
-| Approach | Why avoid |
-|----------|-----------|
-| `register` with Linux `root` / `lab-user` / `RedHat` password | Not a Red Hat portal identity |
-| Adding Rocky/CentOS `.repo` files | Wrong content for `distro = "rhel-10"` gold image |
-| Hosted Image Builder (console.redhat.com compose) | FASTER brief: **local** Image Builder only |
-| Ignoring repos and hoping compose works | `depsolve` will keep failing on CDN |
-
-### Recommended order for FASTER
-
-1. Try **Option 1** (lab activation key) on the demo host  
-2. If demo CDN is broken → **Option 3** (AWS OPEN RHEL builder with RHUI)  
-3. If you need a personal entitlement → **Option 4** (Developer sub + activation key)  
-4. Ask mentor before spending long on portal username/password against `demo.redhat.com`
+| Approach | Why |
+|----------|-----|
+| Register with Linux `root` / local sudo password | Not a Red Hat account identity |
+| Rocky/CentOS `.repo` files | Wrong content for RHEL 10 gold image |
+| Hosted Image Builder cloud service | This project uses **local** Image Builder only |
 
 ---
 

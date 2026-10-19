@@ -78,11 +78,11 @@ When FINISHED → `composer-cli compose image UUID` → upload to AWS → new AM
 
 ## 5) Gold image firewall note (Cockpit)
 
-Expansion Pack gold image rule: **only SSH (2222) and httpd (35443)** on the network.
+Gold image firewall rule: **only SSH (2222) and httpd (35443)** on the network.
 
 So the gold AMI keeps **Cockpit/Web Console closed** in firewall (by design).
 
-For **Web Console / Session Recording / containers GUI** demo, use RHDP **RHEL 10 Base** separately (`docs/07-rhel10-web-console-demo.md`).
+For **Web Console / Session Recording / containers GUI**, use a separate RHEL 10 management host (`docs/07-rhel10-web-console-demo.md`).
 
 ## 6) Verify base OS on the new EC2
 

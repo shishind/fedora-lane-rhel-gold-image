@@ -1,43 +1,18 @@
-# How to publish this Git repository (FASTER)
+# Publishing this repository
 
-Follow these steps so you and reviewers (and later the “customer” narrative) share one source of truth.
+Keep this repository as the source of truth for the Fedora Lane RHEL 10 gold image (blueprint, docs, verify scripts).
 
-## 1) Local repo (already initialized)
-
-```bash
-cd ~/Projects/fedora-lane-rhel-gold-image
-git status
-git log --oneline -5
-```
-
-## 2) Preferred: Consulting GitLab (Core Pack)
-
-1. Open your cohort’s sub-group under the **FASTER** group on Consulting GitLab.  
-2. Create a **private** project, e.g. `fedora-lane-rhel-gold-image`.  
-3. Copy the HTTPS or SSH clone URL.  
-4. Push:
+## Push to your remote
 
 ```bash
 cd ~/Projects/fedora-lane-rhel-gold-image
-git remote remove origin 2>/dev/null || true
-git remote add origin <PASTE_GITLAB_URL>
-git branch -M main
+git remote -v
 git push -u origin main
 ```
 
-5. In GitLab → **Members** — add your manager/mentor as needed.  
-6. Submit the **GitLab project URL** in your Part 1 form.
+Use your organization’s Git hosting (GitLab, GitHub, etc.) and grant access to the Fedora Lane / Red Hat stakeholders who need it.
 
-## 3) Alternate: private GitHub (Expansion Pack)
-
-```bash
-gh auth login
-gh repo create fedora-lane-rhel-gold-image --private --source=. --remote=origin --push
-gh api repos/$(gh api user -q .login)/fedora-lane-rhel-gold-image/collaborators/mflaim-eng \
-  -X PUT -f permission=pull
-```
-
-## 4) Safety check before every push
+## Before every push
 
 ```bash
 git status
@@ -45,4 +20,4 @@ git status
 git grep -i 'aws_secret\|BEGIN OPENSSH\|AKIA' || echo "OK: no obvious secrets"
 ```
 
-Install **rh-pre-commit** as required by the Expansion Pack.
+Do not commit Access Keys, Secret Keys, session tokens, private SSH keys, or disk images.

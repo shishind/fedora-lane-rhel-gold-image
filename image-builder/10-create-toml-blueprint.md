@@ -12,15 +12,15 @@ Working file in this repo:
 
 | Item | Why | How we got it |
 |------|-----|----------------|
-| RHEL 10 builder host | Image Builder only runs on RHEL | RHDP / vSphere / EC2 RHEL 10 |
+| RHEL 10 builder host | Image Builder only runs on RHEL | vSphere / EC2 / on-prem RHEL 10 |
 | `osbuild-composer` + `composer-cli` | Compose from TOML | `dnf install` — see [08-rhel10-rebuild.md](08-rhel10-rebuild.md) |
 | `weldr` group membership | Access `/run/weldr/api.socket` | [09-weldr-permission-fix.md](09-weldr-permission-fix.md) |
 | Exact `distro` id | Blueprint must match builder | `composer-cli distros list` |
-| SSH **public** key | Key-only login for fladmins | `~/.ssh/fedora-lane-lab.pub` (or lab key) |
+| SSH **public** key | Key-only login for fladmins | Admin workstation `.pub` key |
 | Password **hash** (not plain text) | Sudo password for fladmins | `openssl passwd -6` (see below) |
-| Spec list from Expansion Pack | What to encode | Partitions, SELinux, ports, firewall, container httpd |
+| Security / layout requirements | What to encode | Partitions, SELinux, ports, firewall, container httpd |
 
-**Never put** AWS keys, private SSH keys (`.pem` / `id_ed25519`), or RHDP passwords in the TOML or git.
+**Never put** AWS keys or private SSH keys (`.pem` / `id_ed25519`) in the TOML or git.
 
 ---
 
@@ -96,7 +96,7 @@ version = "*"
 
 ## Step 4 — Separate filesystems (&lt; 5 GiB)
 
-Expansion Pack: `/var/log`, `/home`, `/tmp`, `/var/tmp` as separate mounts under 5 GiB.
+Requirement: `/var/log`, `/home`, `/tmp`, `/var/tmp` as separate mounts under 5 GiB.
 
 ```toml
 [[customizations.filesystem]]
@@ -236,7 +236,7 @@ enabled = []
 disabled = ["ssh", "http", "https", "cockpit"]
 ```
 
-Only custom ports **2222** (SSH) and **35443** (httpd container) are opened. Default ssh/http/https/cockpit services are disabled on the firewall — matches the Expansion Pack “gold image firewall” rule.
+Only custom ports **2222** (SSH) and **35443** (httpd container) are opened. Default ssh/http/https/cockpit services are disabled on the firewall.
 
 ---
 
@@ -336,7 +336,7 @@ Then upload to AWS (S3 → import-snapshot → register AMI → EC2). See [05-lo
 
 ---
 
-## Quick map: Expansion Pack → TOML field
+## Quick map: requirement → TOML field
 
 | Requirement | Where in our TOML |
 |-------------|-------------------|

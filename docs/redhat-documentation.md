@@ -3,7 +3,7 @@
 Curated links for this Fedora Lane **RHEL 10 gold image** solution.  
 Use these in the README and solution overview when citing official Red Hat guidance.
 
-> **Note for FASTER:** Prefer **local** Image Builder on a RHEL 10 host. Do **not** use the hosted Image Builder cloud service for this practice activity.
+> Prefer **local** Image Builder on a RHEL 10 host. Do **not** use the hosted Image Builder cloud service for this gold-image standard.
 
 ---
 
@@ -71,8 +71,8 @@ Image type in Image Builder: `vhd` (see output formats table in the composing gu
 
 ## 6. Web Console / Session Recording (day-2 demo)
 
-Gold AMI firewall still allows only **2222** and **35443** (Expansion Pack).  
-For GUI demos, use RHDP **RHEL 10 Base** (Web Console preinstalled).
+Gold AMI firewall still allows only **2222** and **35443**.  
+For GUI operations demos, use a RHEL 10 host with Web Console installed (separate from the locked-down gold AMI firewall).
 
 | Topic | Document |
 |-------|----------|

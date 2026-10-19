@@ -61,7 +61,7 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
 |-------------|----------------|
 | RHEL 10 base | `distro = "rhel-10"` in blueprint; compose on RHEL 10 host |
 | Local (not hosted) Image Builder | `osbuild-composer` / `image-builder` on customer-like RHEL host |
-| AWS deployable | AMI registered and EC2 launched in sandbox/OPEN |
+| AWS deployable | AMI registered and EC2 launched in the target account |
 | Separate filesystems | `/var/log`, `/home`, `/tmp`, `/var/tmp` (< 5 GiB) |
 | `/tmp` noexec | fstab + first-boot reinforcement |
 | SELinux enforcing | config + runtime |
