@@ -10,6 +10,9 @@ aws-exports.txt
 **/containers.json
 **/trust-policy.json
 **/role-policy.json
+**/azure.toml
+**/azure-upload.toml
+.azure/
 
 # Local notes / machine-specific
 local/

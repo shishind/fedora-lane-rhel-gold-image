@@ -1,12 +1,21 @@
 # Verify gold-image customizations
 
-SSH in (security group must allow your IP on **2222**):
+Works the same on **AWS EC2** and **Azure VM**.
+
+SSH in (cloud firewall must allow your IP on **2222**):
+
+| Cloud | Open these inbound ports to your IP |
+|-------|-------------------------------------|
+| AWS | Security group: TCP **2222**, **35443** |
+| Azure | Network security group: TCP **2222**, **35443** |
 
 ```bash
 ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
 ```
 
 Wait a few minutes after first boot for the httpd container to start, then run these on the instance.
+
+Build/publish paths: [00-end-to-end-guide.md](00-end-to-end-guide.md) · AWS [12](../image-builder/12-aws-access-s3-upload.md) · Azure [15](../image-builder/15-azure-vhd-upload.md)
 
 ---
 

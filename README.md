@@ -1,13 +1,22 @@
 # Fedora Lane — RHEL 10 Gold Image
 
 **Audience:** Fedora Lane infrastructure, security, and Linux operations (e-commerce web fleet).  
-**Goal:** A secure, standardized **Red Hat Enterprise Linux 10** gold image for web servers on **AWS** (Azure as a stretch).
+**Goal:** A secure, standardized **Red Hat Enterprise Linux 10** gold image for web servers on **AWS** and **Microsoft Azure**, from one Image Builder blueprint.
+
+**Start here (full steps):** [docs/00-end-to-end-guide.md](docs/00-end-to-end-guide.md)
 
 ---
 
 ## What we built
 
-A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as an **AWS AMI**, and proven on a live EC2 instance with hardened SSH, SELinux, separate filesystems, and **httpd in a Podman container**.
+A **repeatable RHEL 10 gold image** defined in Image Builder TOML (`distro = "rhel-10.0"`), published as:
+
+| Cloud | Image Builder type | Result |
+|-------|--------------------|--------|
+| **AWS** | `ami` | AMI → EC2 |
+| **Azure** | `vhd` | Managed image → VM |
+
+Proven controls: hardened SSH **2222**, SELinux enforcing, separate filesystems, firewall only **2222** + **35443**, **httpd in Podman** managed as a **systemd** service.
 
 ---
 
@@ -15,9 +24,9 @@ A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as 
 
 | Challenge | What the gold image does |
 |-----------|---------------------------|
-| **Inconsistent servers** (mixed OS, drift, failed mass patching) | One **RHEL 10** AMI — identical layout and services every launch |
-| **Untraceable admin changes** (long MTTR) | Named `fladmins`, no root/password SSH, sudo always asks for a password; known-good baseline |
-| **Container skills gap** | **httpd** runs in Podman on port **35443**, managed as a **systemd** service |
+| **Inconsistent servers** (mixed OS, drift, failed mass patching) | One **RHEL 10** image — identical layout and services every launch |
+| **Untraceable admin changes** (long MTTR) | Named `fladmins`, no root/password SSH, sudo always asks for a password |
+| **Container skills gap** | **httpd** on port **35443**, managed as **`container-fl-httpd.service`** |
 
 Full narrative: [docs/solution-overview.md](docs/solution-overview.md)  
 Context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)  
@@ -28,21 +37,25 @@ Context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)
 ## Repository layout
 
 ```text
-README.md                          ← you are here
-image-builder/
-  fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10.0")
-  README.md                        ← RHEL 10 image-builder CLI (current)
-  08-rhel10-rebuild.md             ← build ami/vhd on RHEL 10
-  13-image-builder-aws-examples.md ← copy-paste build + AWS upload examples
-  12-aws-access-s3-upload.md       ← AWS credentials + S3 / upload paths
-  10-create-toml-blueprint.md      ← how the TOML is built
-  11-depsolve-cdn-repo-fix.md     ← CDN / subscription for builds
+README.md
 docs/
-  solution-overview.md             ← architecture + why
-  08-verify-customizations.md      ← simple commands to test after AMI launch
-  redhat-documentation.md          ← official Red Hat doc links
-  07-rhel10-web-console-demo.md    ← optional day-2 Web Console operations
-scripts/                           ← optional hardening helpers
+  00-end-to-end-guide.md           ← full AWS + Azure step path (start here)
+  solution-overview.md
+  08-verify-customizations.md      ← post-launch checks (both clouds)
+  redhat-documentation.md
+  07-rhel10-web-console-demo.md
+image-builder/
+  fedora-lane-gold.toml            ← single blueprint for ami + vhd
+  README.md                        ← Image Builder CLI overview
+  08-rhel10-rebuild.md             ← build ami / vhd on RHEL 10
+  12-aws-access-s3-upload.md       ← AWS credentials, S3, snapshot, AMI, Console
+  13-image-builder-aws-examples.md ← AWS copy-paste commands
+  15-azure-vhd-upload.md           ← Azure CLI + Portal (detailed)
+  16-azure-examples.md             ← Azure copy-paste commands
+  10-create-toml-blueprint.md
+  11-depsolve-cdn-repo-fix.md
+  14-distro-ami-not-found.md
+scripts/
 ```
 
 ---
@@ -51,7 +64,7 @@ scripts/                           ← optional hardening helpers
 
 - [x] Local Image Builder (not the hosted Image Builder cloud service)
 - [x] Base: **RHEL 10** (`distro = "rhel-10.0"` — confirm with `image-builder list`)
-- [x] Deployable on **AWS** (AMI → EC2); Azure VHD = stretch
+- [x] Deployable on **AWS** (AMI → EC2) and **Azure** (VHD → managed image → VM)
 - [x] httpd + index page; **container preferred** on port **35443**
 - [x] Separate mounts `<5 GiB`: `/var/log`, `/home`, `/tmp`, `/var/tmp`
 - [x] SELinux **enforcing**; `/tmp` **noexec**
@@ -65,22 +78,35 @@ SSH: public key embedded for `fladmin1` / `fladmin2` in the blueprint.
 
 ---
 
-## How to build and run
+## How to build and run (detailed)
 
-### Prerequisites
+### 1) Prerequisites
 
 1. A **RHEL 10** host with local Image Builder (`image-builder` package / CLI).  
-2. AWS credentials with permission to use S3 and EC2 (never commit them).  
-3. Network access to Red Hat repositories on the builder host.
+2. Network access to Red Hat repositories on the builder host.  
+3. For **AWS:** credentials + S3 + `vmimport` role (never commit keys).  
+4. For **Azure:** `az` CLI login + subscription rights (never commit storage keys).  
+5. Matching SSH private key for `fladmin1` on your laptop.
 
-### Build (high level)
+### 2) Install Image Builder and confirm distro id
 
 ```bash
-# On RHEL 10 builder — install once:
 sudo dnf install -y image-builder cockpit-image-builder
-# Must show e.g. rhel-10.0 type:ami arch:x86_64  (NOT bare "rhel-10")
+
+# Must show e.g. rhel-10.0 type:ami and type:vhd  (NOT bare "rhel-10")
 sudo image-builder list --filter "distro:rhel-10*"
-# Set distro= in fedora-lane-gold.toml to that EXACT id
+sudo image-builder list --filter "type:ami" --filter "distro:rhel-10*"
+sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
+```
+
+Set `distro = "rhel-10.0"` (exact id) in `fedora-lane-gold.toml`.
+
+CDN / subscription problems: [image-builder/11-depsolve-cdn-repo-fix.md](image-builder/11-depsolve-cdn-repo-fix.md)
+
+### 3) Build for AWS (`ami`)
+
+```bash
+cd image-builder
 
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
@@ -99,59 +125,74 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-**Upload an existing `.raw` (example):**
+**Manual path** (S3 → import-snapshot → register-image → launch — CLI **and** Console):  
+[image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md)
 
-```bash
-sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  --to=aws \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
-```
+**All AWS examples:** [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md)
 
-All examples: [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md)  
-Full guide: [image-builder/08-rhel10-rebuild.md](image-builder/08-rhel10-rebuild.md)  
-Official: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
-
-### Publish to AWS + prove
-
-1. Prefer Image Builder AWS upload (commands above), **or**  
-   `aws s3 cp` → **import-snapshot** → **register-image** → **run-instances** —  
-   [image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md)  
-   (copy-paste examples: [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md) §5).  
-2. Security group must allow **your IP** on **2222** and **35443**.  
-3. Wait for first-boot (Podman pull), then:
+Security group: your IP on **2222** and **35443**.
 
 ```bash
 ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
 ```
 
-Then run the simple checks in [docs/08-verify-customizations.md](docs/08-verify-customizations.md) (SELinux, mounts, SSH, firewall, httpd, reboot).
+### 4) Build for Azure (`vhd`)
+
+`/var` needs **≥ 15–20 GiB free** during the VHD compose.
+
+```bash
+df -h /var
+
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10.0 \
+  --with-buildlog
+```
+
+Then:
+
+1. Create resource group + storage account + container  
+2. Upload `.vhd` as a **page** blob  
+3. Create managed image (**Linux**, **Gen 2**)  
+4. NSG: **2222** + **35443** from your IP  
+5. Create VM (`fladmin1` + blueprint SSH public key)  
+6. SSH on port **2222**
+
+**Full Azure guide (CLI + Portal):** [image-builder/15-azure-vhd-upload.md](image-builder/15-azure-vhd-upload.md)  
+**Azure copy-paste sheet:** [image-builder/16-azure-examples.md](image-builder/16-azure-examples.md)
+
+```bash
+ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
+```
+
+### 5) Verify (same commands on AWS EC2 and Azure VM)
+
+[docs/08-verify-customizations.md](docs/08-verify-customizations.md)
+
+Official Image Builder CLI: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
 
 ---
 
 ## Day-2 operations (end-user view)
 
-1. New web server = launch from the **gold AMI** (no snowflake install).  
+1. New web server = launch from the **gold AMI** (AWS) or **gold managed image** (Azure).  
 2. Admins connect with keys on **2222** as named users.  
 3. Site answers on **35443**; container is a systemd service.  
 4. Security baseline is already on: SELinux, firewall, partitions, sudo policy.
 
 Optional GUI management (Web Console / Session Recording): [docs/07-rhel10-web-console-demo.md](docs/07-rhel10-web-console-demo.md).  
-Gold AMI firewall still allows only **2222** and **35443**.
+Gold image firewall still allows only **2222** and **35443**.
 
 ---
 
 ## Recommended next step
 
-1. Pilot this **RHEL 10** gold AMI on **staging** web nodes.  
+1. Pilot this **RHEL 10** gold image on **staging** web nodes (AWS and/or Azure).  
 2. Enable **Session Recording / Web Console** for production admin access.  
-3. Automate rebuilds + Red Hat Insights at fleet scale.  
-4. Stretch: Azure image from the **same** TOML.
+3. Automate rebuilds + Red Hat Insights at fleet scale.
 
 ---
 
 ## Repository hygiene
 
-Do **not** commit Access Keys, Secret Keys, session tokens, private SSH keys (`.pem`), or raw disk images.
+Do **not** commit Access Keys, Secret Keys, Azure storage keys, session tokens, private SSH keys (`.pem`), `azure.toml` with secrets, or raw / VHD disk images.

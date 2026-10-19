@@ -106,27 +106,33 @@ All examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.m
 
 ---
 
-## Step 5 — Azure stretch (`vhd`)
+## Step 5 — Azure (`vhd`) — full publish path
 
 ```bash
+df -h /var   # ≥ 15–20 GiB free
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10.0
+  --distro rhel-10.0 \
+  --with-buildlog
 ```
 
-Upload the VHD to Azure and create a VM (stretch).
+Then: storage account → **page** blob upload → Gen2 managed image → NSG **2222**/**35443** → VM.
+
+- Detailed (CLI + Portal): [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
+- Examples: [16-azure-examples.md](16-azure-examples.md)
 
 ---
 
 ## Step 6 — Launch and verify
 
-Security group: your IP on **2222** and **35443**.
+**AWS** security group or **Azure** NSG: your IP on **2222** and **35443**.
 
 ```bash
 ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
 ```
 
-Commands: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
+Commands: [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)  
+Both clouds end-to-end: [docs/00-end-to-end-guide.md](../docs/00-end-to-end-guide.md)
 
 ```bash
 cat /etc/redhat-release

@@ -86,19 +86,39 @@ More copy-paste examples: [13-image-builder-aws-examples.md](13-image-builder-aw
 
 ### Option B — Manual S3 + import-snapshot
 
-Console/CLI bucket, `aws s3 cp`, then import.  
-[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+Console/CLI bucket, `aws s3 cp`, then import → register AMI → launch.  
+Full detail (including Console steps 5g–5j): [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
-## 5) Gold image firewall note
+## 5) Build Azure VHD (same blueprint)
 
-Gold AMI firewall allows only **SSH 2222** and **httpd 35443**.  
+```bash
+sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
+df -h /var   # need 15–20+ GiB free
+
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10.0 \
+  --with-buildlog
+
+ls -lh ./*.vhd
+```
+
+Publish to Azure (page blob → Gen2 image → NSG → VM):
+
+- Detailed: [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
+- Examples: [16-azure-examples.md](16-azure-examples.md)  
+- Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
+
+## 6) Gold image firewall note
+
+Gold image firewall allows only **SSH 2222** and **httpd 35443** (AWS SG and Azure NSG must match).  
 Web Console stays closed on the gold image by design.  
 Day-2 GUI: [docs/07-rhel10-web-console-demo.md](../docs/07-rhel10-web-console-demo.md)
 
-## 6) Launch and verify
+## 7) Launch and verify
 
 ```bash
-# After ami-… exists in EC2:
+# AWS EC2 or Azure VM — same SSH:
 ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
 ```
 
@@ -108,3 +128,5 @@ Test customizations: [docs/08-verify-customizations.md](../docs/08-verify-custom
 cat /etc/redhat-release
 # expect Red Hat Enterprise Linux release 10.x
 ```
+
+End-to-end both clouds: [docs/00-end-to-end-guide.md](../docs/00-end-to-end-guide.md)

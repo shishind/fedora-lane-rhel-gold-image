@@ -16,6 +16,7 @@ Use these in the README and solution overview when citing official Red Hat guida
 | Build images with the **`image-builder` CLI** | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
 | Build images in Web Console (Cockpit) | [Creating system images using the web console](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-gui) |
 | Prepare / upload AMI to AWS (from Image Builder guide) | [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws) |
+| Prepare / upload VHD to Microsoft Azure | [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) |
 | Single-page book (printable/searchable) | [Composing a customized RHEL system image (html-single)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/composing_a_customized_rhel_system_image/index) |
 
 **Why it matters for Fedora Lane:** defines the **repeatable** gold standard (`distro = "rhel-10.0"` exact id in blueprint) instead of snowflake servers.
@@ -37,13 +38,17 @@ Use these in the README and solution overview when citing official Red Hat guida
 
 ---
 
-## 3. Azure stretch goal
+## 3. Deploy RHEL on Azure (publish + run the VHD)
 
 | Topic | Document |
 |-------|----------|
-| Deploying RHEL on Azure (RHEL 10) | [Deploying and managing RHEL on Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index) |
+| Deploying RHEL on Azure (book) | [Deploying and managing RHEL on Microsoft Azure (RHEL 10)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index) |
+| Prepare and upload VHD | [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/preparing-and-uploading-vhd-images-to-microsoft-azure) |
+| Same chapter in Image Builder book | [Preparing and uploading VHD images to Microsoft Azure (composing guide)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) |
 
-Image type in Image Builder: `vhd` (see output formats table in the composing guide above).
+Image type in Image Builder: **`vhd`**. Lab steps in this repo: [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md).
+
+**Why it matters:** same TOML as AWS → Azure managed image → VM with NSG **2222**/**35443**.
 
 ---
 
@@ -89,6 +94,8 @@ Lab guide in this repo: [07-rhel10-web-console-demo.md](07-rhel10-web-console-de
 |-----------------|--------------|
 | `image-builder/fedora-lane-gold.toml` | Composing a customized RHEL system image |
 | AWS upload / EC2 proof | Deploying and managing RHEL on AWS |
+| Azure VHD / VM proof | Deploying and managing RHEL on Microsoft Azure |
+| `docs/00-end-to-end-guide.md` | Composing + AWS + Azure books |
 | `verify/verify.sh` + hardening | SELinux, firewalls, OpenSSH guides |
 | Podman httpd unit | Building, running, and managing containers |
 | Optional Cockpit demo | Managing systems using the RHEL 10 web console |

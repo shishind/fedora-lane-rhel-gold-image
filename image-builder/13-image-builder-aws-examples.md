@@ -95,14 +95,18 @@ sudo image-builder upload ./*-ami-*.raw \
 
 ---
 
-## 4) Azure stretch (same blueprint)
+## 4) Azure (same blueprint) — see dedicated guides
 
 ```bash
+df -h /var   # ≥ 15–20 GiB free
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --with-buildlog
 ```
+
+Full Azure publish (page blob → image → NSG → VM):  
+[15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
 
 ---
 

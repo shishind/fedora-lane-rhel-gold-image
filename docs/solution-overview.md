@@ -10,7 +10,7 @@ The standard is defined as a **local Image Builder blueprint** ([image-builder/f
 distro = "rhel-10.0"
 ```
 
-It is composed on a **RHEL 10** builder host (**not** the hosted Image Builder cloud service), published as an **AWS AMI**, and proven on a live EC2 instance.
+It is composed on a **RHEL 10** builder host (**not** the hosted Image Builder cloud service), published as an **AWS AMI** and/or an **Azure VHD → managed image**, and proven on a live cloud VM.
 
 ## Customer challenges addressed
 
@@ -39,22 +39,18 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
               |
               v
 [ Local Image Builder on RHEL 10 host ]
-              |
-              v
-[ Gold disk (.raw / .qcow2) ]
-              |
-              v
-[ AWS: S3 → import snapshot → register AMI ]
-              |
-              v
-[ EC2 web node from AMI ]
-     |                    |
- SSH :2222            httpd container :35443
- (fladmin*, keys)     (Podman + systemd)
-     |
-  sudo (password)
+         /                    \
+   type: ami                 type: vhd
+        |                         |
+[ AWS: S3 → snap → AMI ]   [ Azure: page blob → image ]
+        |                         |
+[ EC2 from AMI ]           [ VM from managed image ]
+         \                       /
+          SSH :2222  ·  httpd :35443
+          (fladmin* + keys · Podman systemd)
 ```
 
+Step-by-step both clouds: [00-end-to-end-guide.md](00-end-to-end-guide.md)
 ## Technical controls
 
 | Requirement | How we meet it |
@@ -62,6 +58,7 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
 | RHEL 10 base | `distro = "rhel-10.0"` (exact id) in blueprint; compose on RHEL 10 host |
 | Local (not hosted) Image Builder | RHEL 10 `image-builder` CLI on a RHEL builder host |
 | AWS deployable | AMI registered and EC2 launched in the target account |
+| Azure deployable | VHD uploaded, Gen2 managed image, VM launched |
 | Separate filesystems | `/var/log`, `/home`, `/tmp`, `/var/tmp` (< 5 GiB) |
 | `/tmp` noexec | fstab + first-boot reinforcement |
 | SELinux enforcing | config + runtime |
@@ -87,7 +84,7 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
 1. Pilot the RHEL 10 gold AMI on **staging** web nodes.  
 2. Enable **Web Console + Session Recording** for production admin access.  
 3. Automate rebuilds and add **Red Hat Insights** for fleet visibility.  
-4. Stretch: publish an **Azure** image from the same TOML.
+4. Keep **AWS** and **Azure** images rebuilt from the same TOML on a schedule.
 
 ## Official Red Hat documentation
 
@@ -95,4 +92,5 @@ See [redhat-documentation.md](redhat-documentation.md) for links to:
 
 - *Composing a customized RHEL system image* (RHEL 10 Image Builder)  
 - *Deploying and managing RHEL on Amazon Web Services*  
+- *Deploying and managing RHEL on Microsoft Azure*  
 - SELinux, firewalld, OpenSSH, containers, and Web Console guides

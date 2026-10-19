@@ -7,8 +7,11 @@ Official docs:
 - [Composing a customized RHEL system image (RHEL 10)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/index)
 - [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
 - [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
+- [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
 
 Do **not** use the hosted Image Builder service on console.redhat.com for this standard.
+
+**End-to-end (AWS + Azure):** [docs/00-end-to-end-guide.md](../docs/00-end-to-end-guide.md)
 
 > **Note:** Older guides used `composer-cli` + `osbuild-composer` (Weldr). On RHEL 10, use the current **`image-builder`** CLI below. The blueprint TOML format stays the same.
 
@@ -70,15 +73,26 @@ sudo image-builder upload \
 ```
 
 Full example sheet: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)  
-Manual S3 path: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+Manual S3 path (CLI + Console): [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
-Azure stretch:
+## Build + publish to Azure (`vhd`)
+
+Confirm VHD support and free space on `/var` (**≥ 15–20 GiB**):
 
 ```bash
+sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
+df -h /var
+
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10
+  --distro rhel-10.0 \
+  --with-buildlog
 ```
+
+Then upload as a **page** blob → create Gen2 managed image → NSG **2222**/**35443** → VM → SSH.
+
+**Detailed Azure guide:** [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
+**Azure examples:** [16-azure-examples.md](16-azure-examples.md)
 
 ## Full rebuild guide
 

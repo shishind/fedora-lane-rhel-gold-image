@@ -13,7 +13,9 @@
 # Upload raw:  sudo image-builder upload ./FILE.raw --to=aws --aws-region us-east-2 \
 #                --aws-bucket fedora-lane-gold-1792315114 --aws-ami-name fedora-lane-rhel10-gold
 # Azure:       sudo image-builder build vhd --blueprint ./fedora-lane-gold.toml --distro rhel-10.0
-# Examples:    see 13-image-builder-aws-examples.md
+# AWS guide:   12-aws-access-s3-upload.md · 13-image-builder-aws-examples.md
+# Azure guide: 15-azure-vhd-upload.md · 16-azure-examples.md
+# End-to-end:  ../docs/00-end-to-end-guide.md
 #
 # Lab sudo password for fladmin1/fladmin2: RedHat
 
