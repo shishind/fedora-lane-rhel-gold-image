@@ -101,7 +101,10 @@ composer-cli blueprints show fedora-lane-gold
 composer-cli blueprints depsolve fedora-lane-gold
 ```
 
-If `depsolve` errors, paste the error — usually a package/name issue.
+If `depsolve` errors on **CDN / repomd.xml / RepoError**, the builder is not
+subscribed or cannot reach `cdn.redhat.com` — see
+[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md).  
+Other depsolve errors are often package/name issues in the TOML.
 
 ---
 

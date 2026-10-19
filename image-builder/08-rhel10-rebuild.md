@@ -50,7 +50,22 @@ If the list shows e.g. `rhel-10.0` or `rhel-100` instead of `rhel-10`, edit `fed
 distro = "rhel-10.0"   # use the EXACT string from distros list
 ```
 
-## 3) Push + compose
+## 3) Subscription / CDN must work (before depsolve)
+
+Image Builder downloads RHEL packages from `cdn.redhat.com`. If depsolve fails with
+`Cannot download repomd.xml` / `RepoError`, fix registration first:
+
+**[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)**
+
+Quick check:
+
+```bash
+sudo subscription-manager status
+sudo dnf makecache
+sudo dnf repolist
+```
+
+## 4) Push + compose
 
 ```bash
 composer-cli blueprints push ~/fedora-lane-gold.toml
@@ -61,7 +76,7 @@ composer-cli compose status
 
 When FINISHED → `composer-cli compose image UUID` → upload to AWS → new AMI → launch → verify.
 
-## 4) Gold image firewall note (Cockpit)
+## 5) Gold image firewall note (Cockpit)
 
 Expansion Pack gold image rule: **only SSH (2222) and httpd (35443)** on the network.
 
@@ -69,7 +84,7 @@ So the gold AMI keeps **Cockpit/Web Console closed** in firewall (by design).
 
 For **Web Console / Session Recording / containers GUI** demo, use RHDP **RHEL 10 Base** separately (`docs/07-rhel10-web-console-demo.md`).
 
-## 5) Verify base OS on the new EC2
+## 6) Verify base OS on the new EC2
 
 ```bash
 cat /etc/redhat-release

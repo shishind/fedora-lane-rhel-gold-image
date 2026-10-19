@@ -43,6 +43,9 @@ composer-cli distros list
 If you get **permission denied on `/run/weldr/api.socket`**, see  
 [09-weldr-permission-fix.md](09-weldr-permission-fix.md).
 
+If **depsolve** fails with CDN / `repomd.xml` / `RepoError`, see  
+[11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md) (register the host + fix `dnf`).
+
 ## Build flow (high level)
 
 1. Edit `fedora-lane-gold.toml` — replace `SSHKEY_REPLACE_ME` with your `fedora-lane-lab.pub` contents.  
