@@ -197,6 +197,101 @@ composer-cli compose status
 
 ---
 
+## Alternatives when `demo.redhat.com` registration fails
+
+On **RHDP / demo.redhat.com**, classic  
+`subscription-manager register --username ...` often fails (`Unauthorized`) because:
+
+- Demo VMs are **not** meant to use your personal Customer Portal password  
+- The lab may block or isolate CDN registration  
+- Credentials belong to the **lab org**, not your laptop login  
+
+You still need **some** Red Hat content source for Image Builder. Pick one of these paths.
+
+### Option 1 — Use the lab activation key (preferred on RHDP)
+
+Check the RHDP catalog page / environment instructions / email for:
+
+- **Org ID** (numeric)  
+- **Activation key** name  
+
+```bash
+sudo subscription-manager unregister || true
+sudo subscription-manager clean
+sudo subscription-manager register \
+  --org '<LAB_ORG_ID>' \
+  --activationkey '<LAB_ACTIVATION_KEY>'
+sudo subscription-manager identity
+sudo subscription-manager repos --list | egrep -i 'rhel-10|baseos|appstream' | head -40
+```
+
+If the lab guide does not list a key, ask your **Pod Host / mentor** for the FASTER Image Builder activation key. Do not invent one.
+
+### Option 2 — Register with `rhc` (newer client)
+
+Some labs prefer Remote Host Configuration instead of raw `subscription-manager`:
+
+```bash
+sudo dnf -y install rhc
+sudo rhc connect --activation-key '<LAB_ACTIVATION_KEY>' --organization '<LAB_ORG_ID>'
+# or interactive:
+# sudo rhc connect
+sudo rhc status
+sudo dnf makecache
+sudo dnf repolist
+```
+
+### Option 3 — Build on AWS OPEN RHEL (RHUI) instead of the demo VM
+
+Cloud RHEL (AWS Marketplace / OPEN) often gets packages via **RHUI**, not Customer Portal login:
+
+```bash
+# On an AWS RHEL 10 builder EC2
+sudo dnf repolist
+sudo dnf makecache
+```
+
+If `repolist` already shows BaseOS/AppStream **without** `subscription-manager register`, install Image Builder there and compose.  
+This is a valid **local Image Builder** path (still not hosted Image Builder).
+
+High-level:
+
+1. Launch RHEL 10 EC2 in AWS OPEN (enough disk, e.g. 60 GB)  
+2. `dnf install osbuild-composer weldr-client ...`  
+3. Fix weldr group → push TOML → depsolve → compose `ami`  
+
+See [05-local-ib-steps.md](05-local-ib-steps.md).
+
+### Option 4 — Personal Developer Subscription (off demo, for content only)
+
+If the demo VM cannot register at all, activate the **no-cost Red Hat Developer Subscription** on **your** Red Hat account (access.redhat.com), create an **activation key** in Hybrid Cloud Console, then register **that** builder (or a personal/lab RHEL VM you control):
+
+```bash
+sudo subscription-manager register \
+  --org '<YOUR_ORG_ID>' \
+  --activationkey '<YOUR_DEV_ACTIVATION_KEY>'
+```
+
+Docs: [Getting started with activation keys](https://docs.redhat.com/en/documentation/subscription_central/1-latest/html/getting_started_with_activation_keys_on_the_hybrid_cloud_console/index).
+
+### Option 5 — What usually does **not** work on demo
+
+| Approach | Why avoid |
+|----------|-----------|
+| `register` with Linux `root` / `lab-user` / `RedHat` password | Not a Red Hat portal identity |
+| Adding Rocky/CentOS `.repo` files | Wrong content for `distro = "rhel-10"` gold image |
+| Hosted Image Builder (console.redhat.com compose) | FASTER brief: **local** Image Builder only |
+| Ignoring repos and hoping compose works | `depsolve` will keep failing on CDN |
+
+### Recommended order for FASTER
+
+1. Try **Option 1** (lab activation key) on the demo host  
+2. If demo CDN is broken → **Option 3** (AWS OPEN RHEL builder with RHUI)  
+3. If you need a personal entitlement → **Option 4** (Developer sub + activation key)  
+4. Ask mentor before spending long on portal username/password against `demo.redhat.com`
+
+---
+
 ## Quick checklist
 
 | Check | OK when |
