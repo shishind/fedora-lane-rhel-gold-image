@@ -7,11 +7,11 @@
 # Build:  composer-cli compose start fedora-lane-gold ami
 # Azure:  composer-cli compose start fedora-lane-gold vhd
 #
-# Lab sudo password for fladmin1/fladmin2: FedoraLane-Lab-2026!
+# Lab sudo password for fladmin1/fladmin2: RedHat
 
 name = "fedora-lane-gold"
 description = "Fedora Lane e-commerce web gold image (RHEL 10)"
-version = "0.1.0"
+version = "0.1.1"
 distro = "rhel-10"
 modules = []
 groups = []
@@ -77,14 +77,14 @@ name = "fladmin1"
 description = "Fedora Lane administrator"
 groups = ["fladmins", "wheel"]
 key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXidbPLta1+Vb1SDuonODoZRQCtEg/6Y/w4o3NiSBty fedora-lane-apac"
-password = "$6$7wXpOFE7T6w0AW2H$zNSnQpebIbPd.JiMYMP7ehmbgU8vq/owYy/a4.pDL2XzA1qI59HoOzcJy.VMrxd7Lk2k6fF/EegnPkDoWKUPu/"
+password = "$6$/V1FLi5PQGlFGbWT$gULz/71IRt9h8Hsli5QFLDhriu0JxnOXV2JCnwqnv4VEmwBPyFVmT5mpA6onQReAwvStA/Je4jztNYGGbIscH0"
 
 [[customizations.user]]
 name = "fladmin2"
 description = "Fedora Lane administrator"
 groups = ["fladmins", "wheel"]
 key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXidbPLta1+Vb1SDuonODoZRQCtEg/6Y/w4o3NiSBty fedora-lane-apac"
-password = "$6$7wXpOFE7T6w0AW2H$zNSnQpebIbPd.JiMYMP7ehmbgU8vq/owYy/a4.pDL2XzA1qI59HoOzcJy.VMrxd7Lk2k6fF/EegnPkDoWKUPu/"
+password = "$6$/V1FLi5PQGlFGbWT$gULz/71IRt9h8Hsli5QFLDhriu0JxnOXV2JCnwqnv4VEmwBPyFVmT5mpA6onQReAwvStA/Je4jztNYGGbIscH0"
 
 [customizations]
 hostname = "fl-web-gold"

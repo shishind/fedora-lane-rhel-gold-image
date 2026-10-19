@@ -4,7 +4,7 @@ Build host = your **vSphere RHEL 9** machine.
 Mac = edit files / git only.  
 Cloud = upload `ami` / `vhd` and demo.
 
-Lab sudo password (in blueprint): `FedoraLane-Lab-2026!`  
+Lab sudo password (in blueprint): `RedHat`  
 SSH key already in TOML: your `fedora-lane-lab` public key.
 
 ---
@@ -203,7 +203,7 @@ findmnt /var/log /home /tmp /var/tmp
 findmnt -no OPTIONS /tmp
 curl -s http://127.0.0.1:35443/
 sudo ss -tlnp | egrep '2222|35443'
-sudo -k; sudo id    # password: FedoraLane-Lab-2026!
+sudo -k; sudo id    # password: RedHat
 sudo reboot
 ```
 
