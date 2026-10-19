@@ -21,7 +21,41 @@ This is **not** a TOML syntax problem.
 
 ---
 
+## If you see these two messages
+
+```text
+Unauthorized: Invalid credentials for request.
+This system has no repositories available through subscriptions.
+```
+
+| Message | Meaning |
+|---------|---------|
+| `Unauthorized: Invalid credentials` | Wrong Red Hat username/password, wrong activation key, or account cannot register this host |
+| `no repositories available through subscriptions` | Host is not entitled to CDN content (not registered correctly, empty/wrong org, or SCA register succeeded but repos never enabled) |
+
+**Fix path below (unregister → register correctly → enable RHEL 10 repos → dnf makecache).**
+
+Most Red Hat accounts now use **Simple Content Access (SCA)**:
+
+- You **register** the system  
+- You **do not** need `attach --auto` / pool attach  
+- You **must** enable BaseOS + AppStream repos yourself (or via activation key)
+
+---
+
 ## Step-by-step fix (on the RHEL 10 builder)
+
+### 0) See what state you are in now
+
+```bash
+sudo subscription-manager identity
+sudo subscription-manager status
+sudo subscription-manager repos --list-enabled | head -50
+ls /etc/pki/entitlement/ 2>/dev/null | head
+```
+
+- If `identity` fails → not registered (or bad identity)  
+- If `repos --list-enabled` is empty / “no repositories” → registered poorly or repos not enabled  
 
 ### 1) Confirm OS and network
 
@@ -46,44 +80,70 @@ sudo subscription-manager list --consumed
 
 Healthy builder usually shows **Current** / registered identity and at least one consumed subscription that covers RHEL.
 
-### 3) Register if needed (pick one path)
+### 3) Clean bad registration, then register correctly
 
-**A — Interactive username/password (common on lab VMs):**
+If credentials failed or repos are empty, start clean:
 
 ```bash
-sudo subscription-manager register --username <RHN_OR_OFFLINE_USER> --auto-attach
+sudo subscription-manager unregister || true
+sudo subscription-manager clean
 ```
 
-**B — Activation key (preferred in org / RHDP when provided):**
+#### Path A — Username / password (your Red Hat account)
+
+Use the same login as [access.redhat.com](https://access.redhat.com) / Hybrid Cloud Console.  
+**Not** the Linux `root` / `lab-user` password, and **not** the AMI sudo password `RedHat`.
+
+```bash
+sudo subscription-manager register --username '<YOUR_RED_HAT_LOGIN>'
+# prompts for password — must succeed with NO "Unauthorized"
+sudo subscription-manager identity
+```
+
+Under SCA, `subscription-manager status` may say **Disabled** or **Registered** — that can be normal. Trust `identity` more than “Overall Status”.
+
+#### Path B — Activation key (best for RHDP / org labs)
+
+Get **Org ID** + **activation key** from:
+
+- Hybrid Cloud Console → Inventory / Activation Keys, or  
+- Your RHDP / FASTER lab instructions / mentor  
 
 ```bash
 sudo subscription-manager register \
-  --org <ORG_ID> \
-  --activationkey <ACTIVATION_KEY>
-sudo subscription-manager attach --auto
+  --org '<ORG_ID>' \
+  --activationkey '<ACTIVATION_KEY>'
+sudo subscription-manager identity
 ```
 
-**C — Already registered but no repos:**
+Do **not** use a made-up key. Wrong key → `Unauthorized: Invalid credentials`.
+
+#### After register — enable RHEL 10 repos (required when list is empty)
 
 ```bash
 sudo subscription-manager refresh
-sudo subscription-manager attach --auto
-sudo subscription-manager repos --list | egrep -i 'rhel-10|baseos|appstream' | head -40
-```
 
-Enable BaseOS + AppStream for RHEL 10 if they are disabled (repo ids vary slightly by release):
+# See what the account can offer
+sudo subscription-manager repos --list | egrep -i 'rhel-10|baseos|appstream' | head -60
 
-```bash
-# List exact ids first, then enable — examples:
-sudo subscription-manager repos --list-enabled | head -50
-
-# Typical pattern (adjust ids to match --list output):
+# Enable BaseOS + AppStream (ids must match --list output)
 sudo subscription-manager repos \
   --enable=rhel-10-for-x86_64-baseos-rpms \
   --enable=rhel-10-for-x86_64-appstream-rpms
+
+sudo subscription-manager repos --list-enabled
 ```
 
-If your `repos --list` shows different names (for example with `eus` or `e4s`), enable the matching **baseos** and **appstream** for `x86_64`.
+If `--enable` says the repo id is invalid, copy the **exact** Repo ID from `repos --list` (names differ slightly by SKU / EUS).
+
+Still “no repositories available”? Then the **Red Hat account has no RHEL subscription content** for this org (evaluation expired, wrong org, or developer account without RHEL). Fix at account level:
+
+1. Log into [console.redhat.com](https://console.redhat.com) / [access.redhat.com](https://access.redhat.com)  
+2. Confirm the org has an active **RHEL** subscription  
+3. Create/use an activation key that includes RHEL 10 repo sets  
+4. Re-run Path B  
+
+For FASTER: ask your **Pod Host / mentor** for the lab activation key / Org ID if your personal account has no RHEL SKU.
 
 ### 4) Prove normal `dnf` can use Red Hat repos
 
