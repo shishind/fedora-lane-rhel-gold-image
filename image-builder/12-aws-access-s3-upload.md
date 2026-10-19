@@ -176,7 +176,11 @@ aws ec2 describe-import-snapshot-tasks
 # wait until Status=completed → note SnapshotId (snap-...)
 ```
 
-Register the AMI from that snapshot, launch an EC2 web node, then verify SSH on **2222** and httpd on **35443**.
+Register the AMI from that snapshot, launch an EC2 web node, then verify SSH on **2222** and httpd on **35443**.  
+Allow your admin IP in the security group for those ports.
+
+**Prove every customization:** [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)  
+(`sudo bash verify/verify.sh`, then reboot and re-check.)
 
 More detail: [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) (AWS upload section).
 
@@ -189,7 +193,8 @@ More detail: [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) (AWS upload 
 - [ ] S3 bucket (+ folder) created in the Console  
 - [ ] `.raw` uploaded with `aws s3 cp`  
 - [ ] Snapshot imported and AMI registered  
-- [ ] Test EC2 launched and verified  
+- [ ] Test EC2 launched; SG allows your IP on 2222 + 35443  
+- [ ] Customizations verified ([docs/08-verify-customizations.md](../docs/08-verify-customizations.md))  
 
 ---
 
@@ -197,4 +202,5 @@ More detail: [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) (AWS upload 
 
 - [05-local-ib-steps.md](05-local-ib-steps.md) — compose flow  
 - [08-rhel10-rebuild.md](08-rhel10-rebuild.md) — RHEL 10 builder  
+- [docs/08-verify-customizations.md](../docs/08-verify-customizations.md) — post-launch tests  
 - [docs/solution-overview.md](../docs/solution-overview.md) — architecture for Fedora Lane  
