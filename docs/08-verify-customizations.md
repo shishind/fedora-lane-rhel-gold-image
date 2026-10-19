@@ -99,3 +99,44 @@ sudo reboot
 ```
 
 Reconnect, then re-run the same commands above. SSH, mounts, SELinux, firewall, and httpd must still work.
+
+---
+
+## If these three fail (common on first AMI)
+
+| Result | Meaning | Fix on this instance (then rebuild AMI later) |
+|--------|---------|-----------------------------------------------|
+| hostname is `ip-…compute.internal` | AWS cloud-init overwrote `fl-web-gold` | See hostname fix below |
+| `firewall-cmd --list-ports` empty | firewalld active but ports not in zone | See firewall fix below |
+| `/etc/sudoers.d/fladmins` missing | sudo still works via `wheel`; fladmins file absent | See sudoers fix below |
+
+### Hostname
+
+```bash
+sudo hostnamectl set-hostname fl-web-gold
+echo 'preserve_hostname: true' | sudo tee /etc/cloud/cloud.cfg.d/99-fedora-lane.cfg
+hostname
+```
+
+### Firewall (public zone)
+
+```bash
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --set-default-zone=public
+sudo firewall-cmd --permanent --zone=public --add-port=2222/tcp
+sudo firewall-cmd --permanent --zone=public --add-port=35443/tcp
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-ports
+# expect: 2222/tcp 35443/tcp
+```
+
+### sudoers for fladmins
+
+```bash
+echo '%fladmins ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/fladmins
+sudo chmod 440 /etc/sudoers.d/fladmins
+sudo visudo -cf /etc/sudoers.d/fladmins
+ls -l /etc/sudoers.d/fladmins
+```
+
+Blueprint **0.1.2** first-boot applies these automatically on the next compose.

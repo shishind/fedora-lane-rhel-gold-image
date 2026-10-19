@@ -11,7 +11,7 @@
 
 name = "fedora-lane-gold"
 description = "Fedora Lane e-commerce web gold image (RHEL 10)"
-version = "0.1.1"
+version = "0.1.2"
 distro = "rhel-10"
 modules = []
 groups = []
@@ -163,11 +163,29 @@ mount -o remount,nodev,nosuid,noexec /tmp || true
 semanage port -a -t ssh_port_t -p tcp 2222 2>/dev/null || semanage port -m -t ssh_port_t -p tcp 2222
 semanage port -a -t http_port_t -p tcp 35443 2>/dev/null || semanage port -m -t http_port_t -p tcp 35443
 
+# Admin sudo via fladmins (reinforces blueprint file if missing)
+printf '%s\\n' '%fladmins ALL=(ALL) ALL' > /etc/sudoers.d/fladmins
+chmod 0440 /etc/sudoers.d/fladmins
+visudo -cf /etc/sudoers.d/fladmins
+
+# Keep blueprint hostname on cloud providers (AWS cloud-init otherwise renames the host)
+mkdir -p /etc/cloud/cloud.cfg.d
+printf '%s\\n' 'preserve_hostname: true' > /etc/cloud/cloud.cfg.d/99-fedora-lane.cfg
+hostnamectl set-hostname fl-web-gold || true
+
 systemctl enable --now firewalld
-firewall-cmd --permanent --remove-service=ssh || true
-firewall-cmd --permanent --add-port=2222/tcp
-firewall-cmd --permanent --add-port=35443/tcp
+# Wait until firewalld is ready (first boot can race)
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  firewall-cmd --state >/dev/null 2>&1 && break
+  sleep 1
+done
+firewall-cmd --set-default-zone=public || true
+firewall-cmd --permanent --zone=public --remove-service=ssh || true
+firewall-cmd --permanent --zone=public --remove-service=dhcpv6-client || true
+firewall-cmd --permanent --zone=public --add-port=2222/tcp
+firewall-cmd --permanent --zone=public --add-port=35443/tcp
 firewall-cmd --reload
+firewall-cmd --zone=public --list-ports || true
 
 mkdir -p /opt/fedora-lane/www
 if [[ ! -f /opt/fedora-lane/www/index.html ]]; then

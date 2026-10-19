@@ -4,7 +4,7 @@ The blueprint now sets:
 
 ```toml
 distro = "rhel-10"
-version = "0.1.1"
+version = "0.1.2"
 ```
 
 Your previous AMI was composed on **RHEL 9.4** — rebuild on a **RHEL 10** Image Builder host.
