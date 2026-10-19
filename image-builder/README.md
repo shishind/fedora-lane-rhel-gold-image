@@ -24,8 +24,8 @@ Host must be subscribed (BaseOS + AppStream) and able to reach Red Hat CDN.
 
 ```bash
 sudo dnf install -y image-builder cockpit-image-builder
-sudo image-builder list
-sudo image-builder list-images --filter "distro:rhel-10"
+sudo image-builder list --filter "distro:rhel-10*"
+# expect lines like: rhel-10.0 type:ami arch:x86_64
 ```
 
 Run builds as **root** (`sudo`), per Red Hat documentation.
@@ -37,13 +37,13 @@ CDN / subscription problems: [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-
 ```bash
 cd /path/to/image-builder   # directory with fedora-lane-gold.toml
 
-# Confirm distro id matches blueprint (distro = "rhel-10")
-sudo image-builder list-images --filter "distro:rhel-10"
+# Confirm exact distro id (e.g. rhel-10.0 — NOT bare rhel-10)
+sudo image-builder list --filter "type:ami" --filter "distro:rhel-10*"
 
 # Build AWS disk image (ami type). Output is typically a .raw under the working directory.
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 ```
 
@@ -52,7 +52,7 @@ sudo image-builder build ami \
 ```bash
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold

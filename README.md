@@ -30,7 +30,7 @@ Context: [docs/01-what-we-are-solving.md](docs/01-what-we-are-solving.md)
 ```text
 README.md                          ← you are here
 image-builder/
-  fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10")
+  fedora-lane-gold.toml            ← RHEL 10 blueprint (distro = "rhel-10.0")
   README.md                        ← RHEL 10 image-builder CLI (current)
   08-rhel10-rebuild.md             ← build ami/vhd on RHEL 10
   13-image-builder-aws-examples.md ← copy-paste build + AWS upload examples
@@ -50,7 +50,7 @@ scripts/                           ← optional hardening helpers
 ## Requirements checklist
 
 - [x] Local Image Builder (not the hosted Image Builder cloud service)
-- [x] Base: **RHEL 10** (`distro = "rhel-10"` — confirm with `image-builder list-images`)
+- [x] Base: **RHEL 10** (`distro = "rhel-10.0"` — confirm with `image-builder list`)
 - [x] Deployable on **AWS** (AMI → EC2); Azure VHD = stretch
 - [x] httpd + index page; **container preferred** on port **35443**
 - [x] Separate mounts `<5 GiB`: `/var/log`, `/home`, `/tmp`, `/var/tmp`
@@ -78,12 +78,13 @@ SSH: public key embedded for `fladmin1` / `fladmin2` in the blueprint.
 ```bash
 # On RHEL 10 builder — install once:
 sudo dnf install -y image-builder cockpit-image-builder
-sudo image-builder list-images --filter "distro:rhel-10"
-# Edit fedora-lane-gold.toml distro= if needed to match EXACTLY
+# Must show e.g. rhel-10.0 type:ami arch:x86_64  (NOT bare "rhel-10")
+sudo image-builder list --filter "distro:rhel-10*"
+# Set distro= in fedora-lane-gold.toml to that EXACT id
 
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 ```
 
@@ -92,7 +93,7 @@ sudo image-builder build ami \
 ```bash
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold

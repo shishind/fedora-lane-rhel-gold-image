@@ -7,7 +7,7 @@ Deliver a **secure, standardized Red Hat Enterprise Linux 10 gold image** for Fe
 The standard is defined as a **local Image Builder blueprint** ([image-builder/fedora-lane-gold.toml](../image-builder/fedora-lane-gold.toml)) with:
 
 ```toml
-distro = "rhel-10"
+distro = "rhel-10.0"
 ```
 
 It is composed on a **RHEL 10** builder host (**not** the hosted Image Builder cloud service), published as an **AWS AMI**, and proven on a live EC2 instance.
@@ -59,7 +59,7 @@ Operations received brittle `podman run` one-liners and struggled to manage cont
 
 | Requirement | How we meet it |
 |-------------|----------------|
-| RHEL 10 base | `distro = "rhel-10"` in blueprint; compose on RHEL 10 host |
+| RHEL 10 base | `distro = "rhel-10.0"` (exact id) in blueprint; compose on RHEL 10 host |
 | Local (not hosted) Image Builder | RHEL 10 `image-builder` CLI on a RHEL builder host |
 | AWS deployable | AMI registered and EC2 launched in the target account |
 | Separate filesystems | `/var/log`, `/home`, `/tmp`, `/var/tmp` (< 5 GiB) |

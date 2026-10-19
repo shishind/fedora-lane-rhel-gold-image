@@ -1,23 +1,26 @@
 # Fedora Lane gold image — LOCAL RHEL Image Builder blueprint (RHEL 10)
 # Build on a RHEL 10 host with the image-builder CLI (not hosted Image Builder).
-# Confirm distro:  sudo image-builder list-images --filter "distro:rhel-10"
-#   If list shows e.g. rhel-10.0, set distro= below to match EXACTLY.
+# Confirm distro EXACTLY (short "rhel-10" is INVALID for image-builder):
+#   sudo image-builder list --filter "distro:rhel-10*"
+#   Look for a line like:  rhel-10.0 type:ami arch:x86_64
+#   Then set distro= below to that id (rhel-10.0 / rhel-10.1 / rhel-10.2 / …)
+# If build says cannot find image for distro:"rhel-10" type:"ami" → see 14-distro-ami-not-found.md
 #
-# Build AWS:   sudo image-builder build ami --blueprint ./fedora-lane-gold.toml --distro rhel-10
-# Build+AWS:   sudo image-builder build ami --blueprint ./fedora-lane-gold.toml --distro rhel-10 \
+# Build AWS:   sudo image-builder build ami --blueprint ./fedora-lane-gold.toml --distro rhel-10.0
+# Build+AWS:   sudo image-builder build ami --blueprint ./fedora-lane-gold.toml --distro rhel-10.0 \
 #                --aws-region us-east-2 --aws-bucket fedora-lane-gold-1792315114 \
 #                --aws-ami-name fedora-lane-rhel10-gold
 # Upload raw:  sudo image-builder upload ./FILE.raw --to=aws --aws-region us-east-2 \
 #                --aws-bucket fedora-lane-gold-1792315114 --aws-ami-name fedora-lane-rhel10-gold
-# Azure:       sudo image-builder build vhd --blueprint ./fedora-lane-gold.toml --distro rhel-10
+# Azure:       sudo image-builder build vhd --blueprint ./fedora-lane-gold.toml --distro rhel-10.0
 # Examples:    see 13-image-builder-aws-examples.md
 #
 # Lab sudo password for fladmin1/fladmin2: RedHat
 
 name = "fedora-lane-gold"
 description = "Fedora Lane e-commerce web gold image (RHEL 10)"
-version = "0.1.2"
-distro = "rhel-10"
+version = "0.1.3"
+distro = "rhel-10.0"
 modules = []
 groups = []
 

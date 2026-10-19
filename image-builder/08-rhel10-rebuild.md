@@ -6,8 +6,8 @@ Uses the current RHEL 10 tool: **`image-builder`**
 Blueprint:
 
 ```toml
-distro = "rhel-10"
-version = "0.1.2"
+distro = "rhel-10.0"   # exact id from: image-builder list --filter "distro:rhel-10*"
+version = "0.1.3"
 ```
 
 ## 1) Builder host must be RHEL 10
@@ -21,24 +21,27 @@ cat /etc/os-release
 
 ```bash
 sudo dnf install -y image-builder cockpit-image-builder
-sudo image-builder list
-sudo image-builder list-images --filter "distro:rhel-10"
+sudo image-builder list --filter "distro:rhel-10*"
 ```
 
 If `dnf install` or the build cannot reach Red Hat content, fix subscription/CDN first:  
 [11-depsolve-cdn-repo-fix.md](11-depsolve-cdn-repo-fix.md)
 
-## 3) Match `distro` in the blueprint
+## 3) Match `distro` in the blueprint (critical)
 
 ```bash
-sudo image-builder list-images --filter "distro:rhel-10"
+sudo image-builder list --filter "distro:rhel-10*"
+sudo image-builder list --filter "type:ami" --filter "distro:rhel-10*"
 ```
 
-If the filter shows e.g. `rhel-10.0` only, set that exact string in `fedora-lane-gold.toml`:
+You need a line like `rhel-10.0 type:ami arch:x86_64`.  
+**Do not** use bare `rhel-10` — that causes `cannot find image for: distro:"rhel-10" type:"ami"`.
 
 ```toml
-distro = "rhel-10"    # or the exact id from list-images
+distro = "rhel-10.0"    # use the EXACT id from the list
 ```
+
+Troubleshoot: [14-distro-ami-not-found.md](14-distro-ami-not-found.md)
 
 ## 4) Build (AMI type)
 
@@ -46,7 +49,7 @@ distro = "rhel-10"    # or the exact id from list-images
 cd ~/   # or wherever fedora-lane-gold.toml lives
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 ```
 
@@ -62,7 +65,7 @@ Prerequisites: AWS credentials on the builder, writable S3 bucket, `vmimport` IA
 ```bash
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold

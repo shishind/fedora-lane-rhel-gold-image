@@ -30,13 +30,13 @@ Official blueprint + CLI: [Creating system images with the CLI](https://docs.red
 On the builder:
 
 ```bash
-sudo image-builder list-images --filter "distro:rhel-10"
+sudo image-builder list --filter "distro:rhel-10*"
 ```
 
-Copy the **exact** distro string (examples: `rhel-10`, `rhel-10.0`). Put it here:
+Copy the **exact** distro string (example: `rhel-10.0` — **not** bare `rhel-10`). Put it here:
 
 ```toml
-distro = "rhel-10"
+distro = "rhel-10.0"
 ```
 
 If you use the wrong string, the build fails with a distro error.
@@ -59,7 +59,7 @@ Minimum header:
 name = "fedora-lane-gold"
 description = "Fedora Lane e-commerce web gold image (RHEL 10)"
 version = "0.1.1"
-distro = "rhel-10"
+distro = "rhel-10.0"
 modules = []
 groups = []
 ```
@@ -322,13 +322,13 @@ scp image-builder/fedora-lane-gold.toml user@BUILDER:~/
 # On builder — local build
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 
 # On builder — build + upload to AWS (example)
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
@@ -351,7 +351,7 @@ Also: [05-local-ib-steps.md](05-local-ib-steps.md) · [12-aws-access-s3-upload.m
 
 | Requirement | Where in our TOML |
 |-------------|-------------------|
-| RHEL 10 base | `distro = "rhel-10"` |
+| RHEL 10 base | `distro = "rhel-10.0"` (exact id from `image-builder list`) |
 | Local IB (not hosted) | `image-builder build` on RHEL 10 host |
 | Separate mounts &lt; 5 GiB | `[[customizations.filesystem]]` |
 | SELinux enforcing | first-boot script |

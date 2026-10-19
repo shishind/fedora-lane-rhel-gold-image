@@ -18,7 +18,7 @@ Use these in the README and solution overview when citing official Red Hat guida
 | Prepare / upload AMI to AWS (from Image Builder guide) | [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws) |
 | Single-page book (printable/searchable) | [Composing a customized RHEL system image (html-single)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/composing_a_customized_rhel_system_image/index) |
 
-**Why it matters for Fedora Lane:** defines the **repeatable** gold standard (`distro = "rhel-10"` blueprint) instead of snowflake servers.
+**Why it matters for Fedora Lane:** defines the **repeatable** gold standard (`distro = "rhel-10.0"` exact id in blueprint) instead of snowflake servers.
 
 ---
 

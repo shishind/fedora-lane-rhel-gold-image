@@ -6,7 +6,7 @@ Replace region / bucket / AMI name if yours differ.
 | Variable | Example value |
 |----------|----------------|
 | Blueprint | `./fedora-lane-gold.toml` |
-| Distro | `rhel-10` |
+| Distro | **exact** id from `image-builder list` (e.g. `rhel-10.0`, not `rhel-10`) |
 | Region | `us-east-2` |
 | S3 bucket | `fedora-lane-gold-1792315114` |
 | AMI name | `fedora-lane-rhel10-gold` |
@@ -21,8 +21,13 @@ Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en
 ```bash
 # Image Builder
 sudo dnf install -y image-builder cockpit-image-builder
-sudo image-builder list
-sudo image-builder list-images --filter "distro:rhel-10"
+
+# MUST see a line like: rhel-10.0 type:ami arch:x86_64
+sudo image-builder list --filter "distro:rhel-10*"
+sudo image-builder list --filter "type:ami" --filter "distro:rhel-10*"
+
+# Put that exact distro id in fedora-lane-gold.toml (distro = "rhel-10.0")
+# If error "cannot find image for distro:rhel-10 type:ami" → 14-distro-ami-not-found.md
 
 # AWS CLI identity (must succeed before upload)
 export AWS_DEFAULT_REGION=us-east-2
@@ -41,7 +46,7 @@ cd ~
 
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 
 ls -lh ./*ami*.raw ./*.raw 2>/dev/null
@@ -54,7 +59,7 @@ ls -lh ./*ami*.raw ./*.raw 2>/dev/null
 ```bash
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
@@ -95,7 +100,7 @@ sudo image-builder upload ./*-ami-*.raw \
 ```bash
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 ```
 

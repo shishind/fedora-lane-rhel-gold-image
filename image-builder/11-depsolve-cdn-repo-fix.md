@@ -9,7 +9,7 @@ Unauthorized: Invalid credentials for request.
 This system has no repositories available through subscriptions.
 ```
 
-Or `image-builder build` fails while resolving packages for `distro = "rhel-10"`.
+Or `image-builder build` fails while resolving packages (use exact distro id like `rhel-10.0`).
 
 ## What it means
 
@@ -85,7 +85,7 @@ sudo dnf repolist
 sudo image-builder list-images --filter "distro:rhel-10"
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10 \
+  --distro rhel-10.0 \
   --with-buildlog
 ```
 
@@ -98,7 +98,7 @@ sudo image-builder build ami \
 3. **Cloud RHEL (RHUI)** builder on AWS where `dnf repolist` already works without classic register  
 4. **Developer Subscription** + activation key on a builder you control  
 
-Avoid Rocky/CentOS `.repo` files for `distro = "rhel-10"`.
+Avoid Rocky/CentOS `.repo` files for RHEL 10 blueprints.
 
 ---
 
