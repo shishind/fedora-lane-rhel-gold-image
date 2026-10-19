@@ -11,6 +11,20 @@ info() { echo "[INFO] $*"; }
 
 echo "=== Fedora Lane gold image verification ==="
 
+# Base OS
+if grep -qi 'Red Hat Enterprise Linux.*release 10' /etc/redhat-release 2>/dev/null; then
+  ok "Base OS is RHEL 10 ($(cat /etc/redhat-release))"
+else
+  bad "Base OS is not RHEL 10 (got: $(cat /etc/redhat-release 2>/dev/null || echo missing))"
+fi
+
+# Hostname (blueprint sets fl-web-gold)
+if [[ "$(hostname)" == "fl-web-gold" ]]; then
+  ok "hostname is fl-web-gold"
+else
+  info "hostname is $(hostname) (blueprint default is fl-web-gold)"
+fi
+
 # SELinux
 if [[ "$(getenforce 2>/dev/null || true)" == "Enforcing" ]]; then
   ok "SELinux is Enforcing"

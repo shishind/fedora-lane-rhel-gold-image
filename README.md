@@ -38,6 +38,7 @@ image-builder/
   README.md                        ← Image Builder notes
 docs/
   solution-overview.md             ← architecture + why
+  08-verify-customizations.md      ← what to test after launching the AMI
   redhat-documentation.md          ← official Red Hat doc links
   07-rhel10-web-console-demo.md    ← optional day-2 Web Console operations
 verify/verify.sh                   ← post-boot proof checklist
@@ -102,13 +103,14 @@ If the Cockpit UI only lists qcow2/ova/vmdk/iso, prefer CLI type `ami`, or build
 4. Wait for first-boot (Podman pull), then:
 
 ```bash
-ssh -i <admin-ssh-key> -p 2222 fladmin1@<PUBLIC_IP>
+ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
 sudo bash verify/verify.sh
 curl -s http://127.0.0.1:35443/
 cat /etc/redhat-release    # expect RHEL 10.x
 sudo reboot                # re-check after reboot
 ```
 
+**Full customization test list:** [docs/08-verify-customizations.md](docs/08-verify-customizations.md)  
 Also see: [docs/04-easy-aws-ec2-ami.md](docs/04-easy-aws-ec2-ami.md)
 
 ---
