@@ -83,7 +83,7 @@ SSH: use your lab public key already embedded for `fladmin1` / `fladmin2`.
 composer-cli distros list          # confirm rhel-10 / rhel-10.x name
 # Edit image-builder/fedora-lane-gold.toml distro= if needed to match EXACTLY
 
-composer-cli blueprints push image-builder/fedora-lane-gold.toml
+composer-cli blueprints push <Path-to-file>/fedora-lane-gold.toml
 composer-cli blueprints depsolve fedora-lane-gold
 composer-cli compose start fedora-lane-gold ami
 composer-cli compose status
