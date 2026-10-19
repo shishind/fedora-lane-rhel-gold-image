@@ -179,8 +179,8 @@ aws ec2 describe-import-snapshot-tasks
 Register the AMI from that snapshot, launch an EC2 web node, then verify SSH on **2222** and httpd on **35443**.  
 Allow your admin IP in the security group for those ports.
 
-**Prove every customization:** [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)  
-(`sudo bash verify/verify.sh`, then reboot and re-check.)
+**Prove every customization** with simple commands:  
+[docs/08-verify-customizations.md](../docs/08-verify-customizations.md)
 
 More detail: [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) (AWS upload section).
 
@@ -194,7 +194,7 @@ More detail: [06-rhel9-vsphere-steps.md](06-rhel9-vsphere-steps.md) (AWS upload 
 - [ ] `.raw` uploaded with `aws s3 cp`  
 - [ ] Snapshot imported and AMI registered  
 - [ ] Test EC2 launched; SG allows your IP on 2222 + 35443  
-- [ ] Customizations verified ([docs/08-verify-customizations.md](../docs/08-verify-customizations.md))  
+- [ ] Customizations checked with commands in [docs/08-verify-customizations.md](../docs/08-verify-customizations.md)  
 
 ---
 
