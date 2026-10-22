@@ -14,8 +14,16 @@ Same Fedora Lane blueprint as AWS. Replace names/region if yours differ.
 | VM name | `fedora-lane-gold-test` |
 | SSH | `fladmin1` on port **2222** |
 
-Full narrative: [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
-Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
+Full narrative: [15-azure-vhd-upload.md](15-azure-vhd-upload.md)
+
+**Official Red Hat:**
+
+- [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)  
+- [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)  
+- [Deploying and managing RHEL on Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index)
+
+**Azure CLI on RHEL 10:** [Install the Azure CLI on Linux](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux)  
+(do **not** use the 404 yum baseurl still printed in some RH Azure chapters — see [15 § Part 1](15-azure-vhd-upload.md))
 
 ---
 
@@ -25,11 +33,17 @@ Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.r
 sudo dnf install -y image-builder cockpit-image-builder
 sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
 
-# Azure CLI (see 15-azure-vhd-upload.md Part 1 if not installed)
+# Azure CLI — Microsoft RHEL 10 method (see 15-azure-vhd-upload.md Part 1)
+sudo rm -f /etc/yum.repos.d/azure-cli.repo
+sudo rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc
+sudo dnf install -y https://packages.microsoft.com/config/rhel/10/packages-microsoft-prod.rpm
+sudo dnf install -y azure-cli
+az version
+
 az login --use-device-code
 az account show --output table
 
-df -h /var   # need 15–20+ GiB free for VHD compose
+df -h /var   # Red Hat: ≥ 15–20 GiB free for VHD compose
 ```
 
 ---
@@ -101,6 +115,7 @@ export VHD_URL="https://${AZ_STORAGE}.blob.core.windows.net/${AZ_CONTAINER}/${BL
 az image create \
   --resource-group "$AZ_RG" \
   --name "$AZ_IMAGE" \
+  --location "$AZ_LOCATION" \
   --os-type Linux \
   --hyper-v-generation V2 \
   --source "$VHD_URL"

@@ -14,7 +14,13 @@ Replace region, bucket, and names with your own values.
 | AMI (example) | `ami-xxxxxxxxxxxxxxxxx` |
 | Snapshot (example) | `snap-xxxxxxxxxxxxxxxxx` |
 
-Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
+**Official Red Hat:**
+
+- [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)  
+- [Deploying a RHEL image as an EC2 instance on AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_amazon_web_services/deploying-a-rhel-image-as-an-ec2-instance-on-aws)  
+- [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
+
+Commands below match RH’s `image-builder build ami … --aws-*` and `image-builder upload … --to=aws` forms.
 
 ---
 

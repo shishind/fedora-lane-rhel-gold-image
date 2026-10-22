@@ -177,6 +177,9 @@ Wait 2–5 minutes after first boot for Podman/httpd.
 
 ### D1. Azure CLI login + storage
 
+Install `az` with Microsoft’s RHEL 10 method (RH chapter yum URL 404s) — see [15 Part 1](../image-builder/15-azure-vhd-upload.md).  
+Official VHD flow: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
+
 ```bash
 az login --use-device-code
 # create RG, storage account, container — see examples
@@ -189,7 +192,7 @@ az login --use-device-code
 
 ```bash
 az storage blob upload ... --type page
-az image create ... --os-type Linux --hyper-v-generation V2 --source "$VHD_URL"
+az image create ... --location "$AZ_LOCATION" --os-type Linux --hyper-v-generation V2 --source "$VHD_URL"
 ```
 
 ### D3. NSG + VM
@@ -238,10 +241,13 @@ Web Console / Session Recording demos (gold firewall still only 2222 + 35443):
 | Cloud | Book |
 |-------|------|
 | Build | [Composing a customized RHEL system image](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/index) |
-| AWS | [Deploying and managing RHEL on Amazon Web Services](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_amazon_web_services/index) |
-| Azure | [Deploying and managing RHEL on Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index) |
+| CLI compose | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
+| AWS AMI | [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws) |
+| AWS deploy | [Deploying and managing RHEL on Amazon Web Services](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_amazon_web_services/index) |
+| Azure VHD | [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) |
+| Azure deploy | [Deploying and managing RHEL on Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index) |
 
-Curated link list: [redhat-documentation.md](redhat-documentation.md)
+Curated link list + RH vs lab command notes: [redhat-documentation.md](redhat-documentation.md)
 
 ---
 

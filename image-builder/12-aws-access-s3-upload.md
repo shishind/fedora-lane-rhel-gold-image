@@ -2,8 +2,16 @@
 
 After RHEL **Image Builder** (`image-builder`) produces an `ami`-type disk (often `.raw`), publish it to AWS as an **AMI**.
 
-Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
+**Official Red Hat:**
 
+| Topic | Red Hat documentation |
+|-------|------------------------|
+| Build + upload AMI with CLI | [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws) |
+| Same chapter (AWS deploy book) | [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_amazon_web_services/preparing-and-uploading-ami-images-to-aws) |
+| Deploy AMI as EC2 | [Deploying a RHEL image as an EC2 instance on AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_amazon_web_services/deploying-a-rhel-image-as-an-ec2-instance-on-aws) |
+| Build images with the CLI | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
+
+Preferred commands below match Red Hat’s `image-builder build ami … --aws-*` and `image-builder upload … --to=aws` forms.  
 Do **not** store Access Keys, Secret Keys, or session tokens in this Git repository.
 
 ## Preferred — `image-builder upload` (does everything)
@@ -105,6 +113,10 @@ rhel-10.0-ami-x86_64.raw
 
 Skip if `aws --version` already works.
 
+Red Hat’s AMI chapter installs AWS CLI with `pip3 install awscli`  
+([Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)).  
+Either that or the **AWS CLI v2** installer below works; this lab uses v2:
+
 ```bash
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
 unzip -o /tmp/awscliv2.zip -d /tmp
@@ -114,6 +126,7 @@ hash -r
 /usr/local/bin/aws --version
 ```
 
+**RH pip alternative:** `sudo dnf install -y python3 python3-pip && pip3 install --user awscli` then ensure `aws` is on `PATH`.
 ---
 
 ## Part 2 — Configure AWS access (credentials)

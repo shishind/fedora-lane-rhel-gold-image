@@ -3,10 +3,18 @@
 Same blueprint (`fedora-lane-gold.toml`, `distro = "rhel-10.0"`) as AWS.  
 Image Builder output type: **`vhd`**.
 
-Official Red Hat:
+**Official Red Hat (follow these for the VHD / Azure flow):**
 
-- [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)  
-- [Deploying and managing RHEL on Microsoft Azure (RHEL 10)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index)
+| Topic | Red Hat documentation |
+|-------|------------------------|
+| Build images with `image-builder` CLI | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
+| Prepare + upload VHD to Azure | [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) |
+| Same chapter (Azure deploy book) | [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/preparing-and-uploading-vhd-images-to-microsoft-azure) |
+| RHEL on Azure overview | [Deploying and managing RHEL on Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/deploying_and_managing_rhel_on_microsoft_azure/index) |
+
+**Azure CLI install on RHEL 10:** Red Hat’s VHD chapter still shows a yum `baseurl` that returns **404**. For installing `az`, use Microsoft’s documented RHEL 10 steps:  
+[Install the Azure CLI on Linux](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux) (see Part 1 below).  
+VHD build, page-blob upload, and image create still follow **Red Hat** docs.
 
 Do **not** commit storage account keys, `azure.toml` with secrets, or `.vhd` files to Git.
 
@@ -54,22 +62,29 @@ sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
 
 Skip if `az version` already works.
 
-**Use Microsoft’s RHEL 10 method** ([Install Azure CLI on Linux](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux)).  
-Do **not** hand-write a repo with  
-`…/yumrepos/packages.microsoft.com/rhel/10/prod/` — that path returns **404**.
+Red Hat’s Azure VHD chapter tells you to import the Microsoft key and install `azure-cli`  
+([Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)).  
+On RHEL 10, **do not** use the hand-written repo baseurl shown in that chapter  
+(`…/yumrepos/packages.microsoft.com/rhel/10/prod/`) — it returns **HTTP 404**.
+
+**Working install (Microsoft Learn — RHEL 10):**  
+[Install the Azure CLI on Linux](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux)
 
 ```bash
-# Remove a broken hand-made repo if you already created one
+# If you already created the broken hand-written repo:
 sudo rm -f /etc/yum.repos.d/azure-cli.repo
 
+# Red Hat step: import Microsoft key (same key RH documents for RHEL 10)
 sudo rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc
+
+# Microsoft RHEL 10: add packages-microsoft-prod (correct repo config)
 sudo dnf install -y https://packages.microsoft.com/config/rhel/10/packages-microsoft-prod.rpm
 sudo dnf clean all
 sudo dnf install -y azure-cli
 az version
 ```
 
-If `dnf` still cannot find `azure-cli`, install from Microsoft’s dedicated azure-cli yum repo:
+Fallback if `azure-cli` is still not found (Microsoft `yumrepos/azure-cli`):
 
 ```bash
 sudo tee /etc/yum.repos.d/azure-cli.repo >/dev/null <<'EOF'
@@ -80,21 +95,20 @@ enabled=1
 gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 EOF
+sudo dnf clean all
 sudo dnf install -y azure-cli
 az version
 ```
 
-Sign in (on a headless builder use device code):
+Sign in (Red Hat documents `az login`; on a headless builder use device code):
 
 ```bash
 az login --use-device-code
-# open the URL in a browser, enter the code, pick your subscription
+# Browser: open the URL, enter the code, pick your subscription
 
 az account show --output table
-# if wrong subscription:
 # az account set --subscription "<subscription-id-or-name>"
 ```
-
 ---
 
 ## Part 2 — Create resource group, storage account, container
@@ -142,11 +156,18 @@ az storage container create \
 
 ## Part 3 — Build the VHD with Image Builder
 
+Per Red Hat: ensure **`/var` has at least 15–20 GiB free**, then compose type **`vhd`**  
+([Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) ·  
+[Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)).
+
+**CLI form:** Chapter 18 still shows an older positional line  
+(`image-builder build <blueprint> vhd <key> azure.toml`). On current RHEL 10 packages, use the same flagged form as the [AMI upload chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws) / [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli):
+
 ```bash
 cd /path/to/fedora-lane-rhel-gold-image/image-builder
 
 df -h /var
-# ensure 15–20+ GiB free
+# need ≥ 15–20 GiB free
 
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
@@ -154,17 +175,18 @@ sudo image-builder build vhd \
   --with-buildlog
 
 ls -lh ./*.vhd 2>/dev/null
-# note the exact filename, e.g. <uuid>-image.vhd
 export VHD_FILE=./$(ls -1t ./*.vhd | head -1)
 echo "VHD_FILE=$VHD_FILE"
 ```
 
-### Optional — upload config file for Image Builder (do not commit)
+Confirm on your host: `sudo image-builder build --help`.
 
-Red Hat documents an `azure.toml` used with some Image Builder upload flows. Create it **only on the builder**, never in Git:
+### Optional — Red Hat `azure.toml` (do not commit)
+
+Red Hat documents an `azure.toml` used with some Image Builder Azure upload flows. Create it **only on the builder**:
 
 ```bash
-# LOCAL ONLY — contains secrets
+# LOCAL ONLY — contains secrets; never commit
 cat > /tmp/azure-upload.toml <<EOF
 provider = "azure"
 
@@ -176,13 +198,14 @@ EOF
 chmod 600 /tmp/azure-upload.toml
 ```
 
-Prefer the explicit `az storage blob upload` steps below so every stage is visible and auditable. If your `image-builder` build supports passing an Azure upload config, follow the [official VHD chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) for the exact flag layout on your package version (`image-builder --help`).
+This guide’s preferred path is the explicit **`az storage blob upload --type page`** steps below (same end state Red Hat describes in §18.2).
 
 ---
 
 ## Part 4 — Upload VHD as a **page** blob
 
-Azure managed images require VHDs as **page** blobs (not block blobs).
+Red Hat requires a **page** blob upload (`--type page`), not a block blob  
+([Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)):
 
 ```bash
 export BLOB_NAME="fedora-lane-rhel10-gold-$(date +%Y%m%d).vhd"
@@ -221,12 +244,15 @@ echo "$VHD_URL"
 
 ## Part 5 — Create a managed image from the VHD
 
-Image Builder VHDs are **hybrid** (Gen1 BIOS / Gen2 UEFI). Prefer **Gen2** for new Fedora Lane VMs.
+Red Hat: Image Builder VHDs are **hybrid** (V1 BIOS / V2 UEFI). Use `--hyper-v-generation`  
+([same VHD chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)).  
+`V1` is the Azure default if omitted; RH Portal steps use **Gen 2** — set **`V2`** explicitly:
 
 ```bash
 az image create \
   --resource-group "$AZ_RG" \
   --name "$AZ_IMAGE" \
+  --location "$AZ_LOCATION" \
   --os-type Linux \
   --hyper-v-generation V2 \
   --source "$VHD_URL"
@@ -381,4 +407,5 @@ az vm delete --resource-group "$AZ_RG" --name "$AZ_VM" --yes --force-deletion tr
 - Examples sheet: [16-azure-examples.md](16-azure-examples.md)  
 - Same blueprint AWS path: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)  
 - Build how-to: [08-rhel10-rebuild.md](08-rhel10-rebuild.md)  
-- End-to-end (both clouds): [docs/00-end-to-end-guide.md](../docs/00-end-to-end-guide.md)
+- End-to-end (both clouds): [docs/00-end-to-end-guide.md](../docs/00-end-to-end-guide.md)  
+- Official RH index for this lab: [docs/redhat-documentation.md](../docs/redhat-documentation.md)
