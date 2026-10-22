@@ -11,12 +11,28 @@ Do **not** commit `.vhd` files to Git.
 
 ---
 
-## Image Builder command (Azure)
+## Which version can `upload --to=azure`?
 
-On current RHEL 10 packages, **`image-builder upload` does not support Azure**.  
-`sudo image-builder upload --help` lists clouds such as **aws**, **ibmcloud**, **libvirt**, **openstack** — there are **no** `--azure-*` flags and no `--to=azure`.
+| Where | Typical `image-builder` RPM | `upload --to=azure` / `--azure-*` |
+|-------|----------------------------|-----------------------------------|
+| **RHEL 10** AppStream (this lab) | ~31–**77.x** | **No** — your `upload --help` matches this |
+| **CentOS Stream 10** AppStream | up to ~**77.0.0** | **No** |
+| **Fedora 43/44** (updates) | ~**85.x** | **Yes** (service principal flags; documented upstream by v86) |
+| **Fedora 45** testing / **Rawhide** | **87.0.0+** | **Yes** + can reuse `az login` (no SP required) |
+| Upstream [osbuild/image-builder](https://github.com/osbuild/image-builder/releases) | **≥ 86** (SP), **≥ 87** (CLI creds, 2026-10-14) | **Yes** |
 
-For Azure, Image Builder only **builds** the VHD:
+Check on the builder:
+
+```bash
+rpm -q image-builder
+image-builder version
+sudo image-builder upload --help | grep -i azure || echo "no Azure upload on this RPM"
+```
+
+RHEL 10 docs still describe build **`vhd`** then publish with Azure tooling / `azure.toml` flow — not `upload --to=azure`:  
+[Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure).
+
+On current RHEL 10 packages, Image Builder only **builds** the VHD:
 
 ```bash
 sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
