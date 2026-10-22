@@ -21,7 +21,7 @@
 
 name = "fedora-lane-gold"
 description = "Fedora Lane e-commerce web gold image (RHEL 10)"
-version = "0.1.3"
+version = "0.1.4"
 distro = "rhel-10.0"
 modules = []
 groups = []
@@ -124,8 +124,18 @@ UsePAM yes
 [[customizations.files]]
 path = "/etc/sudoers.d/fladmins"
 mode = "0440"
+user = "root"
+group = "root"
 data = """
 %fladmins ALL=(ALL) ALL
+"""
+
+# Stop AWS cloud-init from renaming the host after blueprint hostname is applied
+[[customizations.files]]
+path = "/etc/cloud/cloud.cfg.d/99-fedora-lane.cfg"
+data = """
+preserve_hostname: true
+manage_etc_hosts: false
 """
 
 # Parent dirs must exist before [[customizations.files]] can write nested paths
@@ -173,14 +183,18 @@ mount -o remount,nodev,nosuid,noexec /tmp || true
 semanage port -a -t ssh_port_t -p tcp 2222 2>/dev/null || semanage port -m -t ssh_port_t -p tcp 2222
 semanage port -a -t http_port_t -p tcp 35443 2>/dev/null || semanage port -m -t http_port_t -p tcp 35443
 
-# Admin sudo via fladmins (reinforces blueprint file if missing)
+# Admin sudo via fladmins (reinforces blueprint file if Image Builder skipped it)
 printf '%s\\n' '%fladmins ALL=(ALL) ALL' > /etc/sudoers.d/fladmins
 chmod 0440 /etc/sudoers.d/fladmins
+chown root:root /etc/sudoers.d/fladmins
 visudo -cf /etc/sudoers.d/fladmins
 
 # Keep blueprint hostname on cloud providers (AWS cloud-init otherwise renames the host)
 mkdir -p /etc/cloud/cloud.cfg.d
-printf '%s\\n' 'preserve_hostname: true' > /etc/cloud/cloud.cfg.d/99-fedora-lane.cfg
+cat > /etc/cloud/cloud.cfg.d/99-fedora-lane.cfg <<'EOF'
+preserve_hostname: true
+manage_etc_hosts: false
+EOF
 hostnamectl set-hostname fl-web-gold || true
 
 systemctl enable --now firewalld
@@ -229,6 +243,9 @@ cp -f /tmp/container-fl-httpd.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now container-fl-httpd.service
 systemctl disable --now httpd 2>/dev/null || true
+
+# Re-assert hostname at end (cloud-init may have raced earlier in first boot)
+hostnamectl set-hostname fl-web-gold || true
 
 touch "$FLAG"
 """
