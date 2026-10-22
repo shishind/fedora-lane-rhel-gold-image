@@ -16,7 +16,7 @@ A **repeatable RHEL 10 gold image** defined in Image Builder TOML (`distro = "rh
 | **AWS** | `ami` | AMI → EC2 |
 | **Azure** | `vhd` | Managed image → VM |
 
-Proven controls: hardened SSH **2222**, SELinux enforcing, separate filesystems, firewall only **2222** + **35443**, **httpd in Podman** managed as a **systemd** service.
+Gold image controls: hardened SSH **2222**, SELinux enforcing, separate filesystems, firewall only **2222** + **35443**, **httpd in Podman** managed as a **systemd** service.
 
 ---
 
@@ -128,10 +128,10 @@ sudo image-builder upload \
   rhel-10.0-ami-x86_64.raw \
   --to=aws \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold \
   --arch x86_64
-# Proven: AMI ami-0cad9f5491acdddf9 · Snapshot snap-01ea4b3df978de401
+# Expect: AMI ami-… and Snapshot snap-…
 ```
 
 **Or build + upload together:**
@@ -141,7 +141,7 @@ sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 

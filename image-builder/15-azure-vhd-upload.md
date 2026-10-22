@@ -342,7 +342,7 @@ Full checklist (same as AWS): [docs/08-verify-customizations.md](../docs/08-veri
 # delete VM + disks + NIC + public IP, keep the image for reuse:
 az vm delete --resource-group "$AZ_RG" --name "$AZ_VM" --yes --force-deletion true
 
-# or wipe the whole lab resource group:
+# or wipe the whole resource group:
 # az group delete --name "$AZ_RG" --yes --no-wait
 ```
 

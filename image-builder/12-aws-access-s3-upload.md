@@ -17,36 +17,36 @@ With AWS credentials on the builder, an S3 bucket, and the `vmimport` IAM role, 
 
 You do **not** need separate `aws s3 cp` → `import-snapshot` → `register-image` when this path works.
 
-### Proven reference (Fedora Lane lab)
+### Example — upload an existing disk image
 
 ```bash
 sudo image-builder upload \
   rhel-10.0-ami-x86_64.raw \
   --to=aws \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-Example successful output (yours will get new IDs each run):
+Example successful output (IDs below are placeholders — replace with yours):
 
 ```text
 WARNING: no upload architecture specified, using "x86_64" (use --arch to override)
-Uploading fedora-lane-rhel10-gold to fedora-lane-gold-1792315114:…-fedora-lane-rhel10-gold
+Uploading fedora-lane-rhel10-gold to YOUR_S3_BUCKET:…-fedora-lane-rhel10-gold
 12.20 GiB / 12.20 GiB [---->] 100.00%
-File uploaded to https://fedora-lane-gold-1792315114.s3.us-east-2.amazonaws.com/…
+File uploaded to https://YOUR_S3_BUCKET.s3.us-east-2.amazonaws.com/…
 Registering AMI fedora-lane-rhel10-gold
-Deleted S3 object fedora-lane-gold-1792315114:…
-AMI registered: ami-0cad9f5491acdddf9
-Snapshot ID: snap-01ea4b3df978de401
+Deleted S3 object YOUR_S3_BUCKET:…
+AMI registered: ami-xxxxxxxxxxxxxxxxx
+Snapshot ID: snap-xxxxxxxxxxxxxxxxx
 ```
 
-| Result | Example from this run |
-|--------|------------------------|
-| AMI | `ami-0cad9f5491acdddf9` |
-| Snapshot | `snap-01ea4b3df978de401` |
-| Region | `us-east-2` |
-| Bucket (temp upload) | `fedora-lane-gold-1792315114` |
+| Result | Placeholder (yours will differ) |
+|--------|----------------------------------|
+| AMI | `ami-xxxxxxxxxxxxxxxxx` |
+| Snapshot | `snap-xxxxxxxxxxxxxxxxx` |
+| Region | your AWS region (example: `us-east-2`) |
+| Bucket (temp upload) | `YOUR_S3_BUCKET` |
 
 Optional: add `--arch x86_64` to silence the architecture warning.
 
@@ -57,7 +57,7 @@ sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
@@ -67,7 +67,7 @@ sudo image-builder build ami \
 sudo image-builder upload ./*-ami-*.raw \
   --to=aws \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold \
   --arch x86_64
 ```
@@ -83,7 +83,8 @@ Use only if `image-builder upload` is unavailable or you must drive each AWS ste
 Example compose output:
 
 ```text
-d951ae1c-382e-47f1-9990-f89544935eb8-image.raw
+rhel-10.0-ami-x86_64.raw
+# or: YOUR-DISK.raw
 ```
 
 ```text
@@ -167,16 +168,16 @@ Create storage in the **console**, then upload the large `.raw` with the **CLI**
 
 1. Open **S3** in the AWS Console.  
 2. **Create bucket**.  
-3. **Bucket name** — globally unique, for example `fedora-lane-gold-1792315114`.  
+3. **Bucket name** — globally unique, for example `YOUR_S3_BUCKET`.  
 4. **AWS Region** — same region you will use for EC2 / snapshot import.  
 5. Create the bucket (defaults are fine unless your security team requires specific encryption or blocking settings).  
 6. Open the bucket → **Create folder**, for example `Fedora-Lane-Images/`.  
 7. Record:
 
 ```text
-Bucket:  fedora-lane-gold-1792315114
+Bucket:  YOUR_S3_BUCKET
 Prefix:  Fedora-Lane-Images/
-URI:     s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
+URI:     s3://YOUR_S3_BUCKET/Fedora-Lane-Images/
 ```
 
 CLI alternative:
@@ -203,16 +204,16 @@ Upload into the bucket and folder:
 export AWS_DEFAULT_REGION="us-east-2"   # must match the bucket region
 
 aws s3 cp \
-  d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/
+  YOUR-DISK.raw \
+  s3://YOUR_S3_BUCKET/Fedora-Lane-Images/
 ```
 
 Or with variables:
 
 ```bash
-BUCKET="fedora-lane-gold-1792315114"
+BUCKET="YOUR_S3_BUCKET"
 PREFIX="Fedora-Lane-Images"
-IMAGE_FILE="d951ae1c-382e-47f1-9990-f89544935eb8-image.raw"
+IMAGE_FILE="YOUR-DISK.raw"
 
 aws s3 cp "$IMAGE_FILE" "s3://${BUCKET}/${PREFIX}/"
 ```
@@ -220,7 +221,7 @@ aws s3 cp "$IMAGE_FILE" "s3://${BUCKET}/${PREFIX}/"
 Large images (about 12 GiB) take several minutes. Wait until the command exits successfully, then verify:
 
 ```bash
-aws s3 ls "s3://fedora-lane-gold-1792315114/Fedora-Lane-Images/"
+aws s3 ls "s3://YOUR_S3_BUCKET/Fedora-Lane-Images/"
 ```
 
 ---
@@ -243,8 +244,8 @@ Set examples (adjust names if yours differ):
 
 ```bash
 export AWS_DEFAULT_REGION=us-east-2
-BUCKET="fedora-lane-gold-1792315114"
-S3_KEY="Fedora-Lane-Images/d951ae1c-382e-47f1-9990-f89544935eb8-image.raw"
+BUCKET="YOUR_S3_BUCKET"
+S3_KEY="Fedora-Lane-Images/YOUR-DISK.raw"
 aws sts get-caller-identity
 ```
 
@@ -397,8 +398,8 @@ Do this in the **AWS Management Console** in the same region as the S3 object (e
 3. Fill in:
    - **Description:** `Fedora Lane RHEL 10 gold`
    - **Disk container** / image format: **RAW**
-   - **S3 bucket:** e.g. `fedora-lane-gold-1792315114`
-   - **S3 key:** full object key, e.g. `Fedora-Lane-Images/d951ae1c-382e-47f1-9990-f89544935eb8-image.raw`  
+   - **S3 bucket:** e.g. `YOUR_S3_BUCKET`
+   - **S3 key:** full object key, e.g. `Fedora-Lane-Images/YOUR-DISK.raw`  
      (copy from S3 → bucket → object → **Copy S3 URI**, then drop the `s3://bucket/` prefix)
 4. Start the import.  
 5. Stay on **Snapshots** (or **Import tasks** / **Imports and exports** if your console layout shows it). Refresh until status is **completed**.  

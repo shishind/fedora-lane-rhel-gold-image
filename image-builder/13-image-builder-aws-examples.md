@@ -1,18 +1,18 @@
 # Image Builder + AWS — copy-paste examples
 
-All examples use the Fedora Lane blueprint and sample AWS values from this project.  
-Replace region / bucket / AMI name if yours differ.
+Copy-paste examples for your AWS account.  
+Replace region, bucket, and names with your own values.
 
 | Variable | Example value |
 |----------|----------------|
 | Blueprint | `./fedora-lane-gold.toml` |
 | Distro | **exact** id from `image-builder list` (e.g. `rhel-10.0`, not `rhel-10`) |
 | Region | `us-east-2` |
-| S3 bucket | `fedora-lane-gold-1792315114` |
+| S3 bucket | `YOUR_S3_BUCKET` |
 | AMI name | `fedora-lane-rhel10-gold` |
-| Raw file (proven) | `rhel-10.0-ami-x86_64.raw` |
-| AMI (example) | `ami-0cad9f5491acdddf9` |
-| Snapshot (example) | `snap-01ea4b3df978de401` |
+| Raw file (example) | `rhel-10.0-ami-x86_64.raw` |
+| AMI (example) | `ami-xxxxxxxxxxxxxxxxx` |
+| Snapshot (example) | `snap-xxxxxxxxxxxxxxxxx` |
 
 Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
 
@@ -63,7 +63,7 @@ sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
@@ -76,7 +76,7 @@ When this finishes, open **EC2 → AMIs** in region `us-east-2` and look for `fe
 **This one command uploads to S3, creates the snapshot, registers the AMI, then deletes the S3 object.**  
 No separate `aws s3 cp` / `import-snapshot` / `register-image` needed.
 
-### Proven command (Fedora Lane)
+### Example — upload an existing disk image
 
 ```bash
 ls -lh ./*ami*.raw ./*.raw rhel-10.0-ami-x86_64.raw 2>/dev/null
@@ -85,7 +85,7 @@ sudo image-builder upload \
   rhel-10.0-ami-x86_64.raw \
   --to=aws \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold \
   --arch x86_64
 ```
@@ -98,7 +98,7 @@ Snapshot ID: snap-…
 Deleted S3 object …
 ```
 
-Reference run: **AMI** `ami-0cad9f5491acdddf9` · **Snapshot** `snap-01ea4b3df978de401` · region `us-east-2`.
+When it finishes, note the printed `ami-…` and `snap-…` (use your account region).
 
 Then open **EC2 → AMIs** (Owned by me) and launch with SG ports **2222** and **35443**.
 
@@ -108,7 +108,7 @@ Then open **EC2 → AMIs** (Owned by me) and launch with SG ports **2222** and *
 sudo image-builder upload ./*-ami-*.raw \
   --to=aws \
   --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-bucket YOUR_S3_BUCKET \
   --aws-ami-name fedora-lane-rhel10-gold-$(date +%Y%m%d) \
   --arch x86_64
 ```
@@ -152,11 +152,11 @@ ssh -p 2222 fladmin1@PUBLIC_IP
 
 ```bash
 export AWS_DEFAULT_REGION=us-east-2
-BUCKET=fedora-lane-gold-1792315114
-S3_KEY=Fedora-Lane-Images/d951ae1c-382e-47f1-9990-f89544935eb8-image.raw
+BUCKET=YOUR_S3_BUCKET
+S3_KEY=Fedora-Lane-Images/YOUR-DISK.raw
 
 aws s3 cp \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  ./YOUR-DISK.raw \
   "s3://${BUCKET}/Fedora-Lane-Images/"
 
 aws s3 ls "s3://${BUCKET}/Fedora-Lane-Images/"

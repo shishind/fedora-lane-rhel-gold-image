@@ -50,7 +50,7 @@ export VHD_FILE=./$(ls -1t ./*.vhd | head -1)
 
 ---
 
-## 2) Create Azure storage (lab defaults)
+## 2) Create Azure storage (example names)
 
 ```bash
 export AZ_LOCATION=eastus

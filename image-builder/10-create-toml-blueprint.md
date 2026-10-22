@@ -129,7 +129,7 @@ mountpoint = "/var/log"
 minsize = "2 GiB"
 ```
 
-Fedora Lane uses 2 GiB each for `/var/log`, `/home`, `/tmp`, `/var/tmp` (under the 5 GiB lab cap).  
+Fedora Lane uses 2 GiB each for `/var/log`, `/home`, `/tmp`, `/var/tmp` (under 5 GiB each for this standard).  
 `/tmp` **noexec** is applied in the first-boot script.
 
 ### Step 5 — Groups and users (password + SSH key)

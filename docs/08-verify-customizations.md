@@ -69,7 +69,7 @@ getent group fladmins
 
 sudo -k
 sudo id
-# must ask for password (lab password: RedHat)
+# must ask for password (sudo password set in the blueprint)
 ```
 
 ---
