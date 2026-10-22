@@ -121,7 +121,20 @@ sudo image-builder build ami \
   --with-buildlog
 ```
 
-**Build + upload to AWS (example):**
+**Preferred — upload existing `.raw` (S3 → snapshot → AMI in one command):**
+
+```bash
+sudo image-builder upload \
+  rhel-10.0-ami-x86_64.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
+# Proven: AMI ami-0cad9f5491acdddf9 · Snapshot snap-01ea4b3df978de401
+```
+
+**Or build + upload together:**
 
 ```bash
 sudo image-builder build ami \
@@ -132,10 +145,9 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-**Manual path** (S3 → import-snapshot → register-image → launch — CLI **and** Console):  
-[image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md)
-
-**All AWS examples:** [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md)
+Full AWS guide (preferred upload + alternate manual path):  
+[image-builder/12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md) ·  
+[image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md)
 
 Security group: your IP on **2222** and **35443**.
 

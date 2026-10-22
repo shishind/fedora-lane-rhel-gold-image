@@ -6,11 +6,51 @@ Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en
 
 Do **not** store Access Keys, Secret Keys, or session tokens in this Git repository.
 
-## Preferred — Image Builder uploads for you
+## Preferred — `image-builder upload` (does everything)
 
-With AWS credentials configured on the builder, an S3 bucket, and the `vmimport` role.
+With AWS credentials on the builder, an S3 bucket, and the `vmimport` IAM role, **one command**:
 
-**Example A — build and upload together:**
+1. Uploads the `.raw` to S3  
+2. Registers the **AMI**  
+3. Creates the **snapshot**  
+4. Deletes the temporary S3 object  
+
+You do **not** need separate `aws s3 cp` → `import-snapshot` → `register-image` when this path works.
+
+### Proven reference (Fedora Lane lab)
+
+```bash
+sudo image-builder upload \
+  rhel-10.0-ami-x86_64.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold
+```
+
+Example successful output (yours will get new IDs each run):
+
+```text
+WARNING: no upload architecture specified, using "x86_64" (use --arch to override)
+Uploading fedora-lane-rhel10-gold to fedora-lane-gold-1792315114:…-fedora-lane-rhel10-gold
+12.20 GiB / 12.20 GiB [---->] 100.00%
+File uploaded to https://fedora-lane-gold-1792315114.s3.us-east-2.amazonaws.com/…
+Registering AMI fedora-lane-rhel10-gold
+Deleted S3 object fedora-lane-gold-1792315114:…
+AMI registered: ami-0cad9f5491acdddf9
+Snapshot ID: snap-01ea4b3df978de401
+```
+
+| Result | Example from this run |
+|--------|------------------------|
+| AMI | `ami-0cad9f5491acdddf9` |
+| Snapshot | `snap-01ea4b3df978de401` |
+| Region | `us-east-2` |
+| Bucket (temp upload) | `fedora-lane-gold-1792315114` |
+
+Optional: add `--arch x86_64` to silence the architecture warning.
+
+**Build + upload in one step** (compose then same AWS path):
 
 ```bash
 sudo image-builder build ami \
@@ -21,33 +61,25 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-**Example B — upload a file you already composed:**
-
-```bash
-sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  --to=aws \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
-```
-
-**Example C — glob pattern if the name matches `*-ami-*.raw`:**
+**Other filename patterns:**
 
 ```bash
 sudo image-builder upload ./*-ami-*.raw \
   --to=aws \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
 ```
 
+After AMI exists → launch EC2 (security group **2222** + **35443**) → SSH / verify.  
 More examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)
 
 ---
 
 ## Alternate — Console S3 + `aws s3 cp` + import-snapshot
 
+Use only if `image-builder upload` is unavailable or you must drive each AWS step yourself.
 Example compose output:
 
 ```text

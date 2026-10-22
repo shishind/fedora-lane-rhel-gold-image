@@ -79,30 +79,33 @@ ls -lh ./*ami*.raw ./*.raw 2>/dev/null
 
 ### Publish to AWS
 
-**Preferred (Image Builder upload)** — [AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
+**Preferred (`image-builder upload`)** — one command: S3 → snapshot → AMI (temp S3 object removed).  
+[AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
 
 ```bash
-# Build + upload (example)
+# Preferred — upload existing raw (creates snapshot + AMI, deletes temp S3 object)
+sudo image-builder upload \
+  rhel-10.0-ami-x86_64.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
+# Proven: ami-0cad9f5491acdddf9 · snap-01ea4b3df978de401
+
+# Or build + upload in one step
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
-
-# Or upload an existing raw (example)
-sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  --to=aws \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-All examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)
+All examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)  
+Narrative: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 
-**Or** manual Console S3 + CLI `aws s3 cp` + import-snapshot:  
-[12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+**Alternate only:** manual `aws s3 cp` + import-snapshot (same guide, Part 5).
 
 ---
 

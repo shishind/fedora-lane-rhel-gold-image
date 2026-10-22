@@ -10,7 +10,9 @@ Replace region / bucket / AMI name if yours differ.
 | Region | `us-east-2` |
 | S3 bucket | `fedora-lane-gold-1792315114` |
 | AMI name | `fedora-lane-rhel10-gold` |
-| Raw file (sample) | `d951ae1c-382e-47f1-9990-f89544935eb8-image.raw` |
+| Raw file (proven) | `rhel-10.0-ami-x86_64.raw` |
+| AMI (example) | `ami-0cad9f5491acdddf9` |
+| Snapshot (example) | `snap-01ea4b3df978de401` |
 
 Official: [Preparing and uploading AMI images to AWS](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)
 
@@ -69,28 +71,46 @@ When this finishes, open **EC2 → AMIs** in region `us-east-2` and look for `fe
 
 ---
 
-## 3) Upload an **existing** `.raw` with Image Builder
+## 3) Upload an **existing** `.raw` with Image Builder (preferred)
 
-Use this if you already built locally (or used `aws s3 cp` earlier and still have the file on disk).
+**This one command uploads to S3, creates the snapshot, registers the AMI, then deletes the S3 object.**  
+No separate `aws s3 cp` / `import-snapshot` / `register-image` needed.
+
+### Proven command (Fedora Lane)
 
 ```bash
-# List what you have
-ls -lh ./*ami*.raw ./*.raw 2>/dev/null
+ls -lh ./*ami*.raw ./*.raw rhel-10.0-ami-x86_64.raw 2>/dev/null
 
-# Example with a known filename from a previous compose:
 sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  rhel-10.0-ami-x86_64.raw \
   --to=aws \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
+```
 
-# Or glob if the name matches the usual pattern:
+What you should see at the end:
+
+```text
+AMI registered: ami-…
+Snapshot ID: snap-…
+Deleted S3 object …
+```
+
+Reference run: **AMI** `ami-0cad9f5491acdddf9` · **Snapshot** `snap-01ea4b3df978de401` · region `us-east-2`.
+
+Then open **EC2 → AMIs** (Owned by me) and launch with SG ports **2222** and **35443**.
+
+### Glob / dated AMI name
+
+```bash
 sudo image-builder upload ./*-ami-*.raw \
   --to=aws \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold-$(date +%Y%m%d)
+  --aws-ami-name fedora-lane-rhel10-gold-$(date +%Y%m%d) \
+  --arch x86_64
 ```
 
 ---
@@ -110,11 +130,11 @@ Full Azure publish (page blob → image → NSG → VM):
 
 ---
 
-## 5) Manual path — S3 → snapshot → AMI → launch
+## 5) Manual path — only if `image-builder upload` is not used
 
-Use this when you already uploaded the `.raw` with `aws s3 cp` (not `image-builder upload`).
+Prefer §3 above. Use this when you uploaded with `aws s3 cp` yourself and must finish import manually.
 
-**CLI** commands are below. For the same flow in the **AWS Console** (Import snapshot → Create image → Security group → Launch), use [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md) Part 5 sections **5g–5j**.
+**CLI** below. Console: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md) Part 5 **5g–5j**.
 
 ```text
 aws s3 cp .raw → S3

@@ -62,20 +62,21 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-**Upload an existing `.raw` (example):**
+**Upload an existing `.raw` (preferred — creates snapshot + AMI):**
 
 ```bash
 sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
+  rhel-10.0-ami-x86_64.raw \
   --to=aws \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
+# Example success: AMI ami-0cad9f5491acdddf9 · Snapshot snap-01ea4b3df978de401
 ```
 
 Full example sheet: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)  
-Manual S3 path (CLI + Console): [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
-
+Narrative + alternate manual path: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
 ## Build + publish to Azure (`vhd`)
 
 Confirm VHD support and free space on `/var` (**≥ 15–20 GiB**):

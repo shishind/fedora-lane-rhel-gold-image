@@ -55,12 +55,28 @@ sudo image-builder build ami \
 
 When finished, note the `.raw` (or similar) artifact in the build output directory.
 
-### Option A — Image Builder uploads to AWS (recommended)
+### Option A — `image-builder upload` to AWS (recommended)
 
 Prerequisites: AWS credentials on the builder, writable S3 bucket, `vmimport` IAM role  
 ([AWS AMI chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-ami-images-to-aws)).
 
-**Build + upload in one step (example):**
+**One upload command does: S3 → snapshot → AMI → delete temp S3 object.**
+
+Proven (existing `.raw`):
+
+```bash
+sudo image-builder upload \
+  rhel-10.0-ami-x86_64.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
+# → AMI registered: ami-0cad9f5491acdddf9
+# → Snapshot ID: snap-01ea4b3df978de401
+```
+
+**Build + upload in one step:**
 
 ```bash
 sudo image-builder build ami \
@@ -71,24 +87,12 @@ sudo image-builder build ami \
   --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-**Upload an already-built `.raw` (example):**
-
-```bash
-sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  --to=aws \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
-```
-
-More copy-paste examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)
+Full narrative + sample log: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)  
+Copy-paste sheet: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)
 
 ### Option B — Manual S3 + import-snapshot
 
-Console/CLI bucket, `aws s3 cp`, then import → register AMI → launch.  
-Full detail (including Console steps 5g–5j): [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
-
+Only if Option A is unavailable. Console/CLI: [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md) (Part 5).
 ## 5) Build Azure VHD (same blueprint)
 
 ```bash

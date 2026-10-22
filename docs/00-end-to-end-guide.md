@@ -119,25 +119,28 @@ You can run B1 and B2 from the same blueprint on the same builder (two separate 
 
 ## Phase C — Publish and launch on **AWS**
 
-### C1. Preferred: Image Builder uploads
+### C1. Preferred: `image-builder upload` (S3 + snapshot + AMI)
 
-Needs AWS credentials, S3 bucket, and `vmimport` IAM role.
+Needs AWS credentials, S3 bucket, and `vmimport` IAM role.  
+**One command** uploads the `.raw`, registers the AMI, creates the snapshot, and removes the temp S3 object.
+
+```bash
+sudo image-builder upload \
+  rhel-10.0-ami-x86_64.raw \
+  --to=aws \
+  --aws-region us-east-2 \
+  --aws-bucket fedora-lane-gold-1792315114 \
+  --aws-ami-name fedora-lane-rhel10-gold \
+  --arch x86_64
+# Proven example: ami-0cad9f5491acdddf9 · snap-01ea4b3df978de401
+```
+
+Or build and upload together:
 
 ```bash
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
-```
-
-Or upload an existing `.raw`:
-
-```bash
-sudo image-builder upload \
-  ./your-image.raw \
-  --to=aws \
   --aws-region us-east-2 \
   --aws-bucket fedora-lane-gold-1792315114 \
   --aws-ami-name fedora-lane-rhel10-gold
