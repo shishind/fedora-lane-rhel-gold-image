@@ -52,11 +52,18 @@ image-builder/
   13-image-builder-aws-examples.md ← AWS copy-paste commands
   15-azure-vhd-upload.md           ← Azure CLI + Portal (detailed)
   16-azure-examples.md             ← Azure copy-paste commands
-  10-create-toml-blueprint.md
+  10-create-toml-blueprint.md      ← how the TOML was built + how to create/customize
   11-depsolve-cdn-repo-fix.md
   14-distro-ami-not-found.md
 scripts/
 ```
+
+### Blueprint (TOML) — create and customize
+
+How `fedora-lane-gold.toml` was written, how to create your own, and **what customizations you can use** (users, packages, mounts, firewall, services, files, timezone, kernel, …):
+
+→ **[image-builder/10-create-toml-blueprint.md](image-builder/10-create-toml-blueprint.md)**  
+→ Official: [Supported image customizations](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/supported-image-customizations)
 
 ---
 

@@ -1,56 +1,88 @@
-# How we created `fedora-lane-gold.toml`
+# Creating and customizing the Image Builder TOML blueprint
 
-This doc explains **how to write the Image Builder blueprint**, what each block does, and **exactly how the admin password and SSH key were passed**.
+This guide is for Fedora Lane engineers who will **own and evolve** the gold image.
 
-Working file in this repo:
+| Topic | Section |
+|-------|---------|
+| How `fedora-lane-gold.toml` was created | [How we built this blueprint](#how-we-built-this-blueprint) |
+| Create your own / edit ours | [How to create or change a blueprint](#how-to-create-or-change-a-blueprint) |
+| What you can customize | [Customization catalog (what you can do)](#customization-catalog-what-you-can-do) |
+| What this gold image uses today | [Fedora Lane mapping](#fedora-lane-requirement--toml-field) |
 
-`image-builder/fedora-lane-gold.toml`
+**Working file:** [`fedora-lane-gold.toml`](fedora-lane-gold.toml)
 
----
+**Official Red Hat docs:**
 
-## What you need before writing the TOML
+- [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)  
+- [Supported image customizations (RHEL 10)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/supported-image-customizations)  
+- [Blueprint format](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/rhel-image-builder-blueprint-format)
 
-| Item | Why | How we got it |
-|------|-----|----------------|
-| RHEL 10 builder host | Image Builder only runs on RHEL | EC2 / on-prem RHEL 10 |
-| `image-builder` package / CLI | Compose from TOML | `dnf install image-builder` — see [08-rhel10-rebuild.md](08-rhel10-rebuild.md) |
-| Exact `distro` id | Blueprint must match builder | `sudo image-builder list-images --filter "distro:rhel-10"` |
-| SSH **public** key | Key-only login for fladmins | Admin workstation `.pub` key |
-| Password **hash** (not plain text) | Sudo password for fladmins | `openssl passwd -6` (see below) |
-| Security / layout requirements | What to encode | Partitions, SELinux, ports, firewall, container httpd |
-
-**Never put** AWS keys or private SSH keys (`.pem` / `id_ed25519`) in the TOML or git.
-
-Official blueprint + CLI: [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli)
+Never put AWS/Azure keys or **private** SSH keys in the TOML or in Git.
 
 ---
 
-## Step 1 — Confirm the distro id
+## How we built this blueprint
 
-On the builder:
+High-level path used for Fedora Lane:
+
+```text
+1. List exact distro id on RHEL 10 builder   →  rhel-10.0
+2. Create TOML header (name, version, distro)
+3. Add packages (podman, firewalld, ssh, sudo, …)
+4. Add filesystem mounts (/var/log, /home, /tmp, /var/tmp)
+5. Add group + users (password HASH + SSH public key)
+6. Set hostname, services, firewall ports
+7. Bake config files (sshd drop-in, sudoers, index.html)
+8. Bake first-boot script (SELinux, noexec, Podman httpd + systemd)
+9. Compose: image-builder build ami|vhd --blueprint … --distro rhel-10.0
+10. Publish to AWS (or Azure) and verify on a fresh VM
+```
+
+### Why some things are in the TOML vs first-boot
+
+| In the TOML at compose time | In first-boot script (runs once on first boot) |
+|-----------------------------|-----------------------------------------------|
+| Packages, users, groups, mounts | SELinux enforcing + port labels (`semanage`) |
+| Firewall ports list | `/tmp` noexec fstab rewrite |
+| sshd drop-in, sudoers, hostname | Podman pull + `generate systemd` for httpd |
+| Static `index.html` | Enable `container-fl-httpd.service` |
+
+Image Builder writes the disk image; first-boot finishes runtime steps that need a live system (SELinux ports, container pull, systemd unit generation).
+
+---
+
+## How to create or change a blueprint
+
+### Prerequisites
+
+| Item | Why | How |
+|------|-----|-----|
+| RHEL 10 builder | Local Image Builder | EC2 or on-prem RHEL 10 |
+| `image-builder` CLI | Compose from TOML | `sudo dnf install -y image-builder` |
+| Exact `distro` id | Must match builder | `sudo image-builder list --filter "distro:rhel-10*"` |
+| SSH **public** key | Key-only admin login | `cat ~/.ssh/yourkey.pub` |
+| Password **hash** | Sudo password | `openssl passwd -6 'YourPassword'` |
+
+### Step 1 — Confirm distro id
 
 ```bash
 sudo image-builder list --filter "distro:rhel-10*"
+sudo image-builder list --filter "type:ami" --filter "distro:rhel-10*"
 ```
 
-Copy the **exact** distro string (example: `rhel-10.0` — **not** bare `rhel-10`). Put it here:
+Use the **exact** id (example: `rhel-10.0`). Bare `rhel-10` fails the build.
 
 ```toml
 distro = "rhel-10.0"
 ```
 
-If you use the wrong string, the build fails with a distro error.
-
----
-
-## Step 2 — Create the file skeleton
-
-On your Mac (or builder):
+### Step 2 — Create the file (or copy ours)
 
 ```bash
-cd ~/Projects/fedora-lane-rhel-gold-image/image-builder
-# start from our file, or create empty:
-# nano fedora-lane-gold.toml
+cd /path/to/fedora-lane-rhel-gold-image/image-builder
+cp fedora-lane-gold.toml my-gold.toml   # safest: start from ours
+# or create empty and build up:
+# nano my-gold.toml
 ```
 
 Minimum header:
@@ -58,21 +90,15 @@ Minimum header:
 ```toml
 name = "fedora-lane-gold"
 description = "Fedora Lane e-commerce web gold image (RHEL 10)"
-version = "0.1.1"
+version = "0.1.3"
 distro = "rhel-10.0"
 modules = []
 groups = []
 ```
 
-- `name` — blueprint name (`fedora-lane-gold`)
-- `version` — bump when you change the blueprint (we use `0.1.2`)
-- `distro` — must match Step 1
+Bump `version` every time you change the blueprint.
 
----
-
-## Step 3 — Add packages
-
-Each package is a TOML table:
+### Step 3 — Add packages
 
 ```toml
 [[packages]]
@@ -80,132 +106,64 @@ name = "podman"
 version = "*"
 ```
 
-**What we included and why:**
+Repeat `[[packages]]` for each RPM. Use `*` for latest from subscribed repos, or pin a version string if you need reproducibility.
 
-| Package | Why |
-|---------|-----|
-| `httpd` | Web stack present (container preferred; package available) |
+**Packages in the Fedora Lane gold image today:**
+
+| Package | Purpose |
+|---------|---------|
+| `httpd` | Web stack available on the host |
 | `podman` | Run httpd in a container |
-| `container-selinux` | SELinux policy for containers |
-| `policycoreutils-python-utils` | `semanage` for custom SSH/httpd ports |
+| `container-selinux` | SELinux for containers |
+| `policycoreutils-python-utils` | `semanage` for custom ports |
 | `firewalld` | Host firewall |
-| `openssh-server` | SSH daemon |
-| `sudo` | Admin privilege with password |
-| `openscap-scanner` / `scap-security-guide` | Stretch hardening / OpenSCAP |
+| `openssh-server` | SSH |
+| `sudo` | Privileged admin with password |
+| `openscap-scanner` / `scap-security-guide` | Stretch: OpenSCAP / CIS |
 
----
-
-## Step 4 — Separate filesystems (&lt; 5 GiB)
-
-Requirement: `/var/log`, `/home`, `/tmp`, `/var/tmp` as separate mounts under 5 GiB.
+### Step 4 — Filesystems
 
 ```toml
 [[customizations.filesystem]]
 mountpoint = "/var/log"
 minsize = "2 GiB"
-
-[[customizations.filesystem]]
-mountpoint = "/home"
-minsize = "2 GiB"
-
-[[customizations.filesystem]]
-mountpoint = "/tmp"
-minsize = "2 GiB"
-
-[[customizations.filesystem]]
-mountpoint = "/var/tmp"
-minsize = "2 GiB"
 ```
 
-`/tmp` **noexec** is applied in the first-boot script (fstab rewrite), not only in this block.
+Fedora Lane uses 2 GiB each for `/var/log`, `/home`, `/tmp`, `/var/tmp` (under the 5 GiB lab cap).  
+`/tmp` **noexec** is applied in the first-boot script.
 
----
+### Step 5 — Groups and users (password + SSH key)
 
-## Step 5 — Admin group + users (password + SSH key)
-
-### 5a. Create the group
+**Group:**
 
 ```toml
 [[customizations.group]]
 name = "fladmins"
 ```
 
-### 5b. How the **password** is passed (important)
-
-Image Builder does **not** accept a plain-text password in the blueprint for production-style hashes.
-
-You must put a **SHA-512 crypt hash** in the `password = "..."` field.
-
-**Generate the hash** (on Mac or RHEL):
+**Password — always a hash, not plain text:**
 
 ```bash
-# Lab password we use: RedHat
 openssl passwd -6 'RedHat'
+# paste the full $6$... string:
 ```
-
-Example output (yours will differ because salt is random):
-
-```text
-$6$/V1FLi5PQGlFGbWT$gULz/71IRt9h8Hsli5QFLDhriu0JxnOXV2JCnwqnv4VEmwBPyFVmT5mpA6onQReAwvStA/Je4jztNYGGbIscH0
-```
-
-Meaning of the hash:
-
-| Part | Meaning |
-|------|---------|
-| `$6$` | SHA-512 crypt |
-| middle segment | salt |
-| last segment | hashed password |
-
-Paste the **entire** `$6$...` string into TOML:
 
 ```toml
-password = "$6$/V1FLi5PQGlFGbWT$gULz/71IRt9h8Hsli5QFLDhriu0JxnOXV2JCnwqnv4VEmwBPyFVmT5mpA6onQReAwvStA/Je4jztNYGGbIscH0"
+password = "$6$salt$hash..."
 ```
 
-**Do not** write:
-
-```toml
-password = "RedHat"    # WRONG — plain text is not what we use
-```
-
-Document the cleartext only in a **comment** for the lab (already in our file):
-
-```toml
-# Lab sudo password for fladmin1/fladmin2: RedHat
-```
-
-That password is for **sudo** (and local console login if enabled). SSH password login is **disabled** in sshd config — you still need the SSH key to log in remotely.
-
-### 5c. How the **SSH public key** is passed
-
-1. On your Mac, show the public key:
-
-```bash
-cat ~/.ssh/fedora-lane-lab.pub
-# or:
-cat ~/.ssh/id_ed25519.pub
-```
-
-2. Copy the **one line** that starts with `ssh-ed25519` or `ssh-rsa`.
-
-3. Put it in the `key = "..."` field (whole line, in quotes):
+**SSH public key** (one line from `.pub` file):
 
 ```toml
 [[customizations.user]]
 name = "fladmin1"
 description = "Fedora Lane administrator"
 groups = ["fladmins", "wheel"]
-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... fedora-lane-apac"
+key = "ssh-ed25519 AAAA... comment"
 password = "$6$...."
 ```
 
-Same for `fladmin2`.
-
-- `groups = ["fladmins", "wheel"]` — admin group + classic wheel for sudo
-- Image Builder installs the key into the user’s `authorized_keys` at compose time
-
-### 5d. Sudo with password (not passwordless)
+**Sudo with password** (no `NOPASSWD`):
 
 ```toml
 [[customizations.files]]
@@ -216,11 +174,7 @@ data = """
 """
 ```
 
-Note: **no** `NOPASSWD`. So after SSH key login, `sudo` still asks for the password (`RedHat`).
-
----
-
-## Step 6 — Hostname, services, firewall
+### Step 6 — Hostname, services, firewall
 
 ```toml
 [customizations]
@@ -237,154 +191,242 @@ enabled = []
 disabled = ["ssh", "http", "https", "cockpit"]
 ```
 
-Only custom ports **2222** (SSH) and **35443** (httpd container) are opened. Default ssh/http/https/cockpit services are disabled on the firewall.
+### Step 7 — Config files and directories
 
----
-
-## Step 7 — SSH hardening file baked into the image
+Create parent dirs before nested files:
 
 ```toml
-[[customizations.files]]
-path = "/etc/ssh/sshd_config.d/99-fedora-lane.conf"
-data = """
-Port 2222
-PermitRootLogin no
-PasswordAuthentication no
-KbdInteractiveAuthentication no
-PubkeyAuthentication yes
-ChallengeResponseAuthentication no
-UsePAM yes
-"""
-```
-
-| Setting | Effect |
-|---------|--------|
-| `Port 2222` | Non-default SSH |
-| `PermitRootLogin no` | No root SSH |
-| `PasswordAuthentication no` | Keys only over SSH |
-| `PubkeyAuthentication yes` | Uses the `key =` from users |
-
----
-
-## Step 8 — Directories + web content
-
-Parent directories must exist before nested files (compose can fail otherwise):
-
-```toml
-[[customizations.directories]]
-path = "/opt/fedora-lane"
-mode = "0755"
-ensure_parents = true
-
 [[customizations.directories]]
 path = "/opt/fedora-lane/www"
 mode = "0755"
 ensure_parents = true
 
 [[customizations.files]]
-path = "/opt/fedora-lane/www/index.html"
+path = "/etc/ssh/sshd_config.d/99-fedora-lane.conf"
 data = """
-<html><body><h1>Fedora Lane e-commerce web — httpd OK</h1></body></html>
+Port 2222
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
 """
 ```
 
-Also a fallback under `/var/www/html/index.html` for safety.
+### Step 8 — First-boot (optional but used here)
 
----
+Bake a script + oneshot systemd unit so the first boot:
 
-## Step 9 — First-boot script (runtime hardening + Podman httpd)
+- Sets SELinux enforcing and port labels  
+- Remounts `/tmp` with `noexec`  
+- Starts firewalld with only 2222 + 35443  
+- Pulls httpd container and enables `container-fl-httpd.service`  
 
-Some controls are easier **after** first boot (SELinux ports, Podman pull, systemd generate). We bake:
+See the full script in [`fedora-lane-gold.toml`](fedora-lane-gold.toml) (`fedora-lane-firstboot.sh`).
 
-1. `/usr/local/sbin/fedora-lane-firstboot.sh` — runs once  
-2. `/etc/systemd/system/fedora-lane-firstboot.service` — oneshot, enabled  
-
-What the script does:
-
-- SELinux → enforcing  
-- `/tmp` → `noexec` in fstab + remount  
-- `semanage port` for 2222 (`ssh_port_t`) and 35443 (`http_port_t`)  
-- firewalld: open 2222 + 35443 only  
-- Pull UBI httpd, run as `fl-httpd` on host port **35443**  
-- `podman generate systemd` → enable `container-fl-httpd.service`  
-- Touch `/var/lib/fedora-lane-firstboot.done` so it does not re-run  
-
-That is how “httpd in a container, managed as a service” is delivered.
-
----
-
-## Step 10 — Build from the TOML (RHEL 10 `image-builder` CLI)
+### Step 9 — Build
 
 ```bash
-# Copy TOML to builder if edited on Mac
-scp image-builder/fedora-lane-gold.toml user@BUILDER:~/
-
-# On builder — local build
 sudo image-builder build ami \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --with-buildlog
-
-# On builder — build + upload to AWS (example)
-sudo image-builder build ami \
-  --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10.0 \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
-
-# Upload existing raw (example)
-sudo image-builder upload \
-  ./d951ae1c-382e-47f1-9990-f89544935eb8-image.raw \
-  --to=aws \
-  --aws-region us-east-2 \
-  --aws-bucket fedora-lane-gold-1792315114 \
-  --aws-ami-name fedora-lane-rhel10-gold
 ```
 
-More examples: [13-image-builder-aws-examples.md](13-image-builder-aws-examples.md)  
-Also: [05-local-ib-steps.md](05-local-ib-steps.md) · [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md)
+AWS / Azure publish: [08-rhel10-rebuild.md](08-rhel10-rebuild.md) · [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md) · [15-azure-vhd-upload.md](15-azure-vhd-upload.md)
+
+### Step 10 — Change something later
+
+1. Edit the TOML.  
+2. Bump `version`.  
+3. Rebuild and publish a **new** AMI/image (existing VMs keep the old disk).  
+4. For password only on a **running** VM: `sudo passwd fladmin1` (does not change the AMI).
 
 ---
 
-## Quick map: requirement → TOML field
+## Customization catalog (what you can do)
 
-| Requirement | Where in our TOML |
-|-------------|-------------------|
-| RHEL 10 base | `distro = "rhel-10.0"` (exact id from `image-builder list`) |
-| Local IB (not hosted) | `image-builder build` on RHEL 10 host |
+These are the main blueprint customizations Image Builder supports on RHEL 10.  
+**Used in Fedora Lane gold** = already in `fedora-lane-gold.toml`.  
+**Available for you** = you can add them when you extend the standard.
+
+### A. Identity and access
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Extra users | `[[customizations.user]]` | Yes (`fladmin1/2`) | Add app users, set `home`, `shell`, `uid`, `gid`, `expiredate` |
+| Extra groups | `[[customizations.group]]` | Yes (`fladmins`) | Create groups; optional `gid` |
+| SSH key on user | `key =` on user **or** `[[customizations.sshkey]]` | Yes | Rotate keys; add keys for existing users |
+| Password | `password =` (prefer `$6$` hash) | Yes | Lab/sudo password; rotate hash and rebuild |
+
+Example — add another admin:
+
+```toml
+[[customizations.user]]
+name = "fladmin3"
+groups = ["fladmins", "wheel"]
+key = "ssh-ed25519 AAAA... fladmin3"
+password = "$6$...."
+```
+
+### B. Packages and content
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Individual packages | `[[packages]]` | Yes | Add monitoring agents, tools, app deps |
+| Package groups | `[[groups]]` | No | Install comps groups (e.g. `@server-product`) |
+| Containers at build | container embedding (see RH Ch 5.4) | No (we pull at first-boot) | Prefetch images into the disk if your IB version supports it |
+
+Example — add a package:
+
+```toml
+[[packages]]
+name = "rsyslog"
+version = "*"
+```
+
+### C. Storage and layout
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Extra mount points | `[[customizations.filesystem]]` | Yes | Add `/var/lib/containers`, larger `/var/log`, etc. Keep sizes sensible for your AMI |
+| Partition mode | `[customizations]` / disk options | Default | `auto-lvm` vs raw — see RH “partition mode” |
+| LVM names | `[[customizations.disk.partitions]]` | No | Name VGs/LVs for standards |
+
+Example — larger log volume:
+
+```toml
+[[customizations.filesystem]]
+mountpoint = "/var/log"
+minsize = "4 GiB"
+```
+
+### D. Network and firewall
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Open ports | `[customizations.firewall] ports = [...]` | Yes (`2222`, `35443`) | Add app ports (`8080:tcp`), ranges (`30000-32767:tcp`) |
+| firewalld services | `[customizations.firewall.services]` | Yes (disable ssh/http/https/cockpit) | `enabled = ["ntp"]`, `disabled = ["telnet"]` |
+
+Example — also open metrics:
+
+```toml
+[customizations.firewall]
+ports = ["2222:tcp", "35443:tcp", "9100:tcp"]
+```
+
+List firewalld service names on a RHEL host: `firewall-cmd --get-services`.
+
+### E. Services and boot behavior
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Enable/disable units | `[customizations.services]` | Yes | Enable `chronyd`, disable unused daemons |
+| Hostname | `[customizations] hostname =` | Yes (`fl-web-gold`) | Set a fleet naming pattern |
+
+```toml
+[customizations.services]
+enabled = ["sshd", "firewalld", "chronyd"]
+disabled = ["postfix"]
+```
+
+### F. Files and directories
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Create/replace files | `[[customizations.files]]` | Yes | Drop-ins for sshd, sudoers, sysctl, banners, app config |
+| Create directories | `[[customizations.directories]]` | Yes | Ensure parents exist before nested files |
+
+Prefer drop-in files under `/etc/...d/` instead of rewriting whole configs.
+
+### G. Locale, time, kernel
+
+| Customization | TOML | Used here? | What you can do |
+|---------------|------|------------|-----------------|
+| Timezone / NTP | `[customizations.timezone]` | No | e.g. `timezone = "UTC"`, NTP servers |
+| Locale / keyboard | `[customizations.locale]` | No | `languages`, `keyboard` |
+| Kernel arguments | `[customizations.kernel]` | No | Append `args` (e.g. audit, hugepages) |
+| Real-time kernel | kernel customization + packages | No | Specialized latency workloads |
+
+Example — timezone:
+
+```toml
+[customizations.timezone]
+timezone = "UTC"
+```
+
+### H. Installer / ISO only (usually not for AMI/VHD)
+
+| Customization | When it applies |
+|---------------|-----------------|
+| `[customizations.installer]` / Kickstart | `image-installer` ISO builds — not required for AWS AMI / Azure VHD gold images |
+
+### I. Patterns beyond the TOML (first-boot / day-2)
+
+You can also extend the **first-boot script** (or cloud-init later) for:
+
+| Need | Approach |
+|------|----------|
+| Containerized apps as systemd units | Same pattern as `container-fl-httpd` |
+| Register to Insights / RHSM extras | First-boot or bootstrap playbook |
+| OpenSCAP CIS remediation | Stretch: `oscap` + `scap-security-guide` (packages already listed) |
+| Extra SSH users per environment | Separate blueprints (`staging` vs `prod`) or inject keys at launch |
+
+---
+
+## Fedora Lane requirement → TOML field
+
+| Requirement | Where |
+|-------------|--------|
+| RHEL 10 base | `distro = "rhel-10.0"` |
+| Local IB (not hosted) | Build with `image-builder` on RHEL 10 |
 | Separate mounts &lt; 5 GiB | `[[customizations.filesystem]]` |
 | SELinux enforcing | first-boot script |
 | `/tmp` noexec | first-boot fstab rewrite |
 | SSH 2222, no root, no password SSH | `99-fedora-lane.conf` |
-| Admins + sudo **with** password | users `password=` hash + sudoers **without** NOPASSWD |
-| SSH key login | user `key=` public key line |
+| Admins + sudo **with** password | user `password=` + sudoers without NOPASSWD |
+| SSH key login | user `key=` |
 | Firewall only SSH + httpd | firewall ports 2222 + 35443 |
 | httpd container :35443 | first-boot Podman + systemd |
 | Survive reboot | enabled services + first-boot flag |
 
 ---
 
-## Changing the password later
+## Minimal example (start small)
 
-1. Generate a new hash: `openssl passwd -6 'NewPassword'`  
-2. Replace both `password =` lines for fladmin1 and fladmin2  
-3. Update the comment `# Lab sudo password ...`  
-4. Bump `version`  
-5. Re-push blueprint and **recompose** (existing AMI keeps the old hash until rebuild)  
+If you want a **tiny** blueprint to learn the format, then grow it:
 
-On a **running** EC2 (without rebuild):
+```toml
+name = "fl-minimal"
+description = "Learning blueprint"
+version = "0.0.1"
+distro = "rhel-10.0"
+modules = []
+groups = []
 
-```bash
-sudo passwd fladmin1
-sudo passwd fladmin2
+[[packages]]
+name = "vim-enhanced"
+version = "*"
+
+[customizations]
+hostname = "fl-minimal"
+
+[[customizations.user]]
+name = "fladmin1"
+groups = ["wheel"]
+key = "ssh-ed25519 AAAA... your-key"
+password = "$6$...."
 ```
+
+Then add mounts, firewall, and first-boot as you harden toward the full [`fedora-lane-gold.toml`](fedora-lane-gold.toml).
 
 ---
 
 ## Related docs
 
-- [fedora-lane-gold.toml](fedora-lane-gold.toml) — the actual blueprint  
-- [08-rhel10-rebuild.md](08-rhel10-rebuild.md) — RHEL 10 `image-builder` flow  
-- [05-local-ib-steps.md](05-local-ib-steps.md) — AMI / VHD build flow  
-- [09-weldr-permission-fix.md](09-weldr-permission-fix.md) — legacy `composer-cli` only  
+| Doc | Purpose |
+|-----|---------|
+| [`fedora-lane-gold.toml`](fedora-lane-gold.toml) | Production gold blueprint |
+| [08-rhel10-rebuild.md](08-rhel10-rebuild.md) | Build AMI / VHD |
+| [12-aws-access-s3-upload.md](12-aws-access-s3-upload.md) | Publish to AWS |
+| [15-azure-vhd-upload.md](15-azure-vhd-upload.md) | Publish to Azure |
+| [../docs/08-verify-customizations.md](../docs/08-verify-customizations.md) | Prove customizations after launch |
+| [../docs/00-end-to-end-guide.md](../docs/00-end-to-end-guide.md) | Full AWS + Azure path |

@@ -19,7 +19,8 @@ Do **not** use the hosted Image Builder service on console.redhat.com for this s
 
 `fedora-lane-gold.toml` — packages, mounts, users, firewall, SSH, first-boot Podman httpd.
 
-How the file is structured: [10-create-toml-blueprint.md](10-create-toml-blueprint.md)
+**Create / customize the TOML** (how this file was built, step-by-step create guide, full customization catalog for your team):  
+→ [10-create-toml-blueprint.md](10-create-toml-blueprint.md)
 
 ## Install (RHEL 10 builder)
 

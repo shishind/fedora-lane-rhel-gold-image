@@ -70,7 +70,8 @@ cd /path/to/fedora-lane-rhel-gold-image/image-builder
 ls fedora-lane-gold.toml
 ```
 
-How the TOML is structured: [image-builder/10-create-toml-blueprint.md](../image-builder/10-create-toml-blueprint.md)
+**How the TOML was created, how to create/edit one, and every customization you can use:**  
+→ [image-builder/10-create-toml-blueprint.md](../image-builder/10-create-toml-blueprint.md)
 
 ### A4. SSH private key on your laptop
 
