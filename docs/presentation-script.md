@@ -39,13 +39,15 @@ Aligned to:
 
 ---
 
-## A. Opening (1–2 min) — slides 1–3
+## A. Opening (1–2 min) — slides 1–4
+
+**Slide 2 — Customer needs (Core Pack):** estate size, hybrid cloud, PCI/GDPR/CCPA, 30-day CVE policy, least privilege, stakeholder needs (Anya / Alex / Casey / Ren / Cameron).
 
 **Say:**
 
 > Hi, I’m **[Name]**, Red Hat Consultant. Thanks for the time today.  
 >  
-> Fedora Lane is a global luxury retailer — boutiques plus a global **e-commerce** platform on **AWS**, with PCI DSS / GDPR pressure and a **30-day** Critical/High patch window.  
+> Fedora Lane is a global luxury retailer — boutiques plus a global **e-commerce** platform on **AWS**, with PCI DSS / GDPR pressure and a **30-day** Critical/High patch window. About **1,600** Linux servers across on-prem, AWS/Azure, and boutiques.  
 >  
 > You’ve asked us to help with the **Linux web fleet**. From the Expansion Pack I understand **three** technical challenges — please confirm these still match:
 
@@ -68,9 +70,11 @@ Aligned to:
 
 ---
 
-## B. Live walkthrough (5–10 min) — slides 4–6, 9, 11
+## B. Live walkthrough (5–10 min) — slides 5–11
 
-### B0. Bridge (30 sec) — slide 6
+**Slides 5–7 (before SSH):** show exact TOML configuration, then **what we solved using the configuration** (challenge → control → outcome), then config detail → issue prevented.
+
+### B0. Bridge (30 sec) — slide 8 (architecture)
 
 **Say:**  
 > We defined one blueprint — `fedora-lane-gold.toml`, **distro `rhel-10.0`** — composed with the **local `image-builder` CLI** on RHEL 10, then published to AWS: **S3 → snapshot → AMI → EC2**.  
@@ -170,15 +174,15 @@ curl -s http://127.0.0.1:35443/ | head
 
 ---
 
-## C. Value summary (2–5 min) — slides 5, 10
+## C. Value summary (2–5 min) — slides 6–7, 12–13
 
-Map **each Expansion Pack challenge** explicitly (Success Criteria: articulate how it addresses core challenges).
+Map **each Expansion Pack challenge** explicitly (Success Criteria: articulate how it addresses core challenges). Use **slide 6** (“What we solved using the configuration”).
 
-| Challenge (Expansion Pack) | What we built | Value for Fedora Lane |
-|----------------------------|---------------|------------------------|
-| **1. Inconsistent estate** | One **RHEL 10** AMI from one TOML | Same OS, layout, packages, policy on every web node — patching/automation can target one baseline |
-| **2. Untraceable changes** | Named `fladmins`, key SSH :2222, sudo password, known-good AMI | Accountability + ability to **rebuild** from gold instead of hunting snowflake edits; **next:** Session Recording |
-| **3. Container skills gap** | httpd as **systemd** unit over Podman | Ops manage the web container without copying long CLI; aligns Casey + Cameron |
+| Challenge (Expansion Pack) | Configuration used | Value for Fedora Lane |
+|----------------------------|--------------------|------------------------|
+| **1. Inconsistent estate** | One **RHEL 10.0** TOML → identical packages, mounts, services | Same OS, layout, packages, policy on every web node — patching/automation can target one baseline |
+| **2. Untraceable changes** | `fladmins`, key SSH :2222, sudo password, no root/password SSH, known-good AMI | Accountability + ability to **rebuild** from gold; **next:** Session Recording |
+| **3. Container skills gap** | Podman httpd + `container-fl-httpd.service` on :35443 | Ops manage the web container without copying long CLI; aligns Casey + Cameron |
 
 **Say:**  
 > Challenge 1: stop the mixed-OS snowflake problem for **web** nodes — one gold AMI.  
@@ -190,7 +194,7 @@ Map **each Expansion Pack challenge** explicitly (Success Criteria: articulate h
 
 ---
 
-## D. Closing (1–2 min) — slide 12
+## D. Closing (1–2 min) — slides 13–14
 
 **Core message:**  
 > One **manual RHEL 10 gold image** for Fedora Lane’s e-commerce web fleet — secure, standardized, and ops-manageable — proven live on AWS.
