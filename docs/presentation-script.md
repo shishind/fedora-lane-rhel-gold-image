@@ -1,11 +1,29 @@
 # Presentation script — Fedora Lane RHEL 10 Gold Image
 
-**Audience:** Fedora Lane leadership (Anya, Alex, Ren, Casey, Cameron)  
+**Audience:** Fedora Lane (Anya, Alex, Ren, Casey, Cameron)  
 **Length:** ~15 minutes  
-**Deck:** `docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx` — **customer voice** (you / your)  
-**Live proof:** EC2 launched from the gold AMI
+**Deck:** `docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx` (14 slides)  
+**Voice:** Speak to the customer — *you / your*
 
-Speak to the customer. Keep FASTER / pack language off the slides and out of the spoken opening.
+---
+
+## ★ When to start the live demo
+
+| Phase | Slides | Time | Action |
+|-------|--------|------|--------|
+| Talk only | **1 → 10** | ~6–7 min | Stay on PPT — needs, problems, config, how it solves, path to AWS |
+| **★ START LIVE DEMO** | **Slide 11** | ~5–7 min | Switch to terminal — SSH into EC2 from the gold AMI |
+| Close | **12 → 14** | ~2–3 min | Back to PPT — value per person, next step, Q&A |
+
+**Do not open the terminal before slide 11.**  
+Finish slides 8–10 (blueprint → AWS) so the room understands *what* they are about to see, then say the bridge line below and switch screen.
+
+**Bridge line (end of slide 10 / open slide 11):**
+
+> Everything so far is the standard we baked into the image.  
+> Now I’ll prove it on a **fresh EC2 launched from your gold AMI** — not a hand-tuned lab box.
+
+Then go to the terminal and run the demo commands in **Live demo (slide 11)** below.
 
 ---
 
@@ -13,78 +31,136 @@ Speak to the customer. Keep FASTER / pack language off the slides and out of the
 
 | Check | Ready? |
 |-------|--------|
-| EC2 from gold AMI is **running**; note **public IP** | ☐ |
-| Security group allows **your IP** on **2222** and **35443** | ☐ |
-| SSH works: `ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@$IP` | ☐ |
-| First-boot done (~2–5 min): `curl http://$IP:35443/` returns html | ☐ |
-| PPT open on slide 1; terminal ready with commands below | ☐ |
-| Repo link + solution overview ready if asked | ☐ |
-| Optional: `reboot` earlier so you can say “survives reboot” — Expansion Pack §7 | ☐ |
+| EC2 from **gold AMI** is **running** — note `PUBLIC_IP` | ☐ |
+| Security group: **your IP** on **2222** and **35443** | ☐ |
+| Pre-test SSH: `ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@$PUBLIC_IP` | ☐ |
+| First-boot done: `curl -s http://$PUBLIC_IP:35443/` returns HTML | ☐ |
+| PPT on slide 1; second screen/window ready for terminal | ☐ |
+| Optional: rebooted earlier so you can show “survives reboot” | ☐ |
 
-**Audience personas (Core Pack):** Anya Sharma (CIO), Alex Lee (Infra), Ren Tanaka (Security), Casey Novak (Linux Eng), Cameron Shaw (App Dev) — speak to **Casey + Ren** during the live demo; close with **Alex / Anya** next step.
+```bash
+export PUBLIC_IP=<paste-ec2-public-ip>
+export KEY=~/.ssh/fedora-lane-lab
+```
 
----
-
-## Timing map (Core Pack)
-
-| Part | Time | What Core Pack requires |
-|------|------|-------------------------|
-| **A. Opening** | 1–2 min | Introduce team; restate **customer’s technical challenges**; agenda |
-| **B. Live walkthrough** | 5–10 min | Implementation from **end-user** view; explain **why** for key choices |
-| **C. Value summary** | 2–5 min | How solution addresses **each** challenge; what it unlocks next |
-| **D. Closing** | 1–2 min | Core message + **one concrete next step** |
+Speak mainly to **Casey + Ren** during the live demo; close with **Alex / Anya** on the staging pilot.
 
 ---
 
-## A. Opening (1–2 min) — slides 1–4
+## Timing map
 
-**Slide 2 — What you need:** estate size, hybrid cloud, PCI/GDPR/CCPA, 30-day CVE policy, least privilege, what each of you needs.
+| Part | Slides | Time | What you do |
+|------|--------|------|-------------|
+| A. Opening | 1–4 | 2 min | Needs + three problems + agenda |
+| B. Solution (talk) | 5–10 | 4–5 min | Config, what it solves, path to AWS |
+| **C. Live demo** | **11** | **5–7 min** | **★ Terminal — prove the image** |
+| D. Close | 12–14 | 2 min | Stakeholder value + next step + Q&A |
+
+---
+
+## A. Opening — slides 1–4 (~2 min)
+
+### Slide 1 — Title
 
 **Say:**
 
-> Hi, I’m **[Name]**, Red Hat Consulting. Thanks for the time today.  
->  
-> You’re running a global luxury brand — boutiques plus e-commerce on **AWS** — under PCI DSS / GDPR and a **30-day** Critical/High patch window, across about **1,600** Linux servers.  
->  
-> You’ve asked us to help with the **web fleet**. We heard **three** problems — please confirm these still match:
+> Hi, I’m **[Name]**, Red Hat Consulting. Thanks for the time.  
+> Today is about a **standard web platform for Fedora Lane** — one **RHEL 10 gold image** for your e-commerce web servers, so every launch is the same secure baseline. Proven on AWS; Azure when you’re ready.
 
-**1 — Inconsistent servers**  
-> Mixed Rocky, Ubuntu, CentOS Stream, Amazon Linux — drift from regional autonomy. A critical patch **failed on 600+** hosts and you missed the 30-day window.
+### Slide 2 — What you need
 
-**2 — Hard-to-trace admin changes**  
-> Undocumented tweaks on production. When checkout fails, teams burn hours asking who changed what.
+**Say:**
 
-**3 — Containers outpace ops**  
-> Developers hand Casey’s team long `podman run` one-liners. Ops can’t manage containers cleanly.
+> Quick confirm of what you’re working with: about **1,600** Linux servers — on-prem, AWS/Azure, boutiques. Crown jewel is **e-commerce on AWS**.  
+> Ren’s bar: **PCI DSS, GDPR, CCPA**, Critical/High CVEs in **30 days**, least privilege, encryption, quarterly scans.  
+> And each of you needs something different — Anya agility, Alex simpler ops, Casey one enforceable standard, Ren a baseline you can prove, Cameron containers ops can actually run.
 
-**Objective:**  
-> Today I’ll show a **RHEL 10 gold image** for your **e-commerce web** nodes — one standard you can rebuild, published as an **AWS AMI**, proven on a live instance.
+*(Nod / short confirm — don’t over-explain.)*
 
-**Agenda:**  
-> Confirm your needs → show what’s in the image → how that solves your three problems → live proof → one next step.
+### Slide 3 — Three problems
+
+**Say:**
+
+> We heard three problems. Please tell me if these still match.
+
+1. **Inconsistent servers** — Rocky, Ubuntu, CentOS Stream, Amazon Linux; patch failed on **600+** hosts; missed the 30-day window.  
+2. **Hard-to-trace admin changes** — undocumented tweaks; hours asking “who changed what?” when checkout fails.  
+3. **Containers outpace ops** — long `podman run` strings to Casey’s team; typos and developer dependency.
+
+### Slide 4 — Agenda
+
+**Say:**
+
+> Next: your gold standard in the image → how that configuration solves those three problems → then a **live proof** on a running instance → one concrete next step.
 
 ---
 
-## B. Live walkthrough (5–10 min) — slides 5–11
+## B. Solution (talk only) — slides 5–10 (~4–5 min)
 
-**Slides 5–7 (before SSH):** show exact TOML configuration, then **what we solved using the configuration** (challenge → control → outcome), then config detail → issue prevented.
+### Slide 5 — What’s baked in
 
-### B0. Bridge (30 sec) — slide 8 (architecture)
+**Say:**
 
-**Say:**  
-> We defined one blueprint — `fedora-lane-gold.toml`, **distro `rhel-10.0`** — composed with the **local `image-builder` CLI** on RHEL 10, then published to AWS: **S3 → snapshot → AMI → EC2**.  
-> Everything I show is on a **fresh instance from that AMI**, so you’re seeing the gold standard, not a hand-tuned lab VM.
+> This is what every new web node gets: **RHEL 10**, separate mounts so root never fills, **SELinux enforcing**, SSH on **2222** key-only, named **fladmins** with sudo password, firewall only **2222** and **35443**, and **httpd as a systemd service** on 35443. Same blueprint can go to Azure later.
 
-### B1. SSH on 2222 (Expansion: SSH port + key-only + no root/password)
+*(Point at 2–3 rows; don’t read every line.)*
+
+### Slide 6 — How config solves your problems
+
+**Say:**
+
+> Challenge one: one RHEL 10 image — Casey gets a baseline to patch.  
+> Challenge two: named admins, hardened SSH, known-good image to rebuild from — accountability now; session recording next.  
+> Challenge three: httpd is a **service** — ops start/stop/status, not fragile one-liners for Cameron’s apps.
+
+### Slide 7 — Why each control
+
+**Say:**
+
+> Short why: separate mounts protect checkout if logs explode; SELinux and `/tmp noexec` for Ren; SSH 2222 and sudo password for accountability; firewall minimal; systemd httpd for day-2; reboot-safe and rebuildable in Git.
+
+### Slide 8 — Blueprint → web node
+
+**Say:**
+
+> Flow: blueprint → Image Builder → gold disk → cloud storage → machine image → your VM. Same story on AWS today and Azure when European teams need it.
+
+### Slide 9 — Reviewable standard
+
+**Say:**
+
+> We built this as a **file you own** — reviewable TOML in Git — not a snowflake or a black-box wizard. Define once, compose for AWS, same blueprint for Azure later.
+
+### Slide 10 — Into your AWS account
+
+**Say:**
+
+> Into your account: gold disk in S3 → import snapshot → register AMI → security group **2222 + 35443** → launch EC2 → prove with SSH and curl.  
+> New capacity = launch from the gold AMI, not another hand-built server.
+
+**→ Then the bridge line and switch to live demo (slide 11).**
+
+---
+
+## C. ★ LIVE DEMO — start here (slide 11) (~5–7 min)
+
+### Switch screens now
+
+1. Leave PPT on **slide 11** (“What we will show you live”) as a checklist.  
+2. Share / focus the **terminal**.  
+3. Say the bridge line (above).  
+4. Run the sequence below — **tell → show → tell** on each block.
+
+### Demo 1 — Login (Challenge 2 / Ren)
+
+**Tell:** Admins connect on non-standard SSH **2222**, key-only, named user.
 
 ```bash
-ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@$PUBLIC_IP
+ssh -i $KEY -p 2222 fladmin1@$PUBLIC_IP
 ```
 
-**Tell → show → tell:**  
-> **Tell:** Admins connect on **non-standard SSH 2222**, key-only.  
-> **Show:** Login succeeds as `fladmin1`.  
-> **Tell:** That shrinks the attack surface and gives **named accounts** instead of shared root — starts Challenge 2.
+**Show:** Login succeeds.  
+**Tell:** Named account, not shared root — starts accountability.
 
 ```bash
 sudo ss -tlnp | grep 2222
@@ -92,7 +168,9 @@ sudo sshd -T | grep -E 'permitrootlogin|passwordauthentication'
 # expect: permitrootlogin no / passwordauthentication no
 ```
 
-### B2. SELinux + filesystems (Expansion: enforcing, separate mounts, /tmp noexec)
+### Demo 2 — OS + SELinux + mounts (Challenge 1 / Ren + Casey)
+
+**Tell:** One OS standard; SELinux on; logs/temp can’t fill root.
 
 ```bash
 cat /etc/redhat-release
@@ -105,11 +183,9 @@ findmnt -no OPTIONS /tmp
 # must include noexec
 ```
 
-**Say:**  
-> Separate mounts under **5 GiB** so logs/temp can’t fill **root** and kill checkout — operational reliability.  
-> **SELinux enforcing** and **`/tmp` noexec** for Ren’s compliance baseline.
+### Demo 3 — Admins + sudo password (Challenge 2)
 
-### B3. Admins + sudo password (Expansion: own users/group, sudo always prompts)
+**Tell:** Your admins are in `fladmins`; sudo always asks for a password.
 
 ```bash
 getent group fladmins
@@ -118,20 +194,18 @@ sudo id
 # type password when prompted (lab: RedHat) — must NOT be passwordless
 ```
 
-**Say:**  
-> `fladmin1` / `fladmin2` in **`fladmins`**. Sudo **always** asks for a password — no silent privilege escalation. Accountable admins for Challenge 2.
+### Demo 4 — Firewall (Ren)
 
-### B4. Firewall — only 2222 + 35443 (Expansion: only SSH + httpd ports)
+**Tell:** Only the ports you need.
 
 ```bash
 sudo firewall-cmd --list-ports
-# 2222/tcp 35443/tcp
+# 2222/tcp  35443/tcp
 ```
 
-**Say:**  
-> Network attack surface is minimal — only the ports we need for admin and the web tier.
+### Demo 5 — httpd as a service (Challenge 3 / Casey + Cameron) ★ highlight
 
-### B5. httpd in a container + systemd (Expansion: httpd, prefer container, port 35443)
+**Tell:** Instead of a fragile `podman run` paste, the site is a **systemd service**.
 
 ```bash
 sudo ss -tlnp | grep 35443
@@ -145,117 +219,92 @@ From your laptop (if SG allows):
 curl -s http://$PUBLIC_IP:35443/
 ```
 
-**Tell → show → tell (Challenge 3):**  
-> **Tell:** Instead of a fragile `podman run` string from developers, httpd runs in **Podman** and is managed as **`container-fl-httpd.service`**.  
-> **Show:** `systemctl status` + curl on **35443**.  
-> **Tell:** Casey’s team uses **start / stop / status** like any other service — this closes the container skills gap for the web tier.
+**Tell:** Casey’s team uses start / stop / status like any other service — that closes the container skills gap for the web tier.
 
-### B6. Why local Image Builder (10–20 sec) — if asked / slide 7–8
-
-**Say:**  
-> Spec required a **manual** gold image — **not** hosted Image Builder. We used RHEL’s documented **`image-builder` CLI** with a TOML blueprint so the build is **repeatable** and reviewable in Git.
-
-### B7. Optional — reboot survival (Expansion §7) — only if time
+### Demo 6 — Optional reboot proof (only if time)
 
 ```bash
-# Earlier you rebooted; now:
+# If you rebooted earlier:
 getenforce
 systemctl is-enabled container-fl-httpd
 curl -s http://127.0.0.1:35443/ | head
 ```
 
-**Say:**  
-> Controls and services survive reboot — permanent gold standard, not a one-shot tweak.
+**Tell:** Controls and services survive reboot — permanent gold standard.
+
+### After demo — return to PPT
+
+> You’ve just seen a fresh node from the gold AMI. Let’s map that back to each of you, then one next step.
+
+Go to **slide 12**.
 
 ---
 
-## C. Value summary (2–5 min) — slides 6–7, 12–13
+## D. Close — slides 12–14 (~2 min)
 
-Map **each Expansion Pack challenge** explicitly (Success Criteria: articulate how it addresses core challenges). Use **slide 6** (“What we solved using the configuration”).
+### Slide 12 — What this means for each of you
 
-| Challenge (Expansion Pack) | Configuration used | Value for Fedora Lane |
-|----------------------------|--------------------|------------------------|
-| **1. Inconsistent estate** | One **RHEL 10.0** TOML → identical packages, mounts, services | Same OS, layout, packages, policy on every web node — patching/automation can target one baseline |
-| **2. Untraceable changes** | `fladmins`, key SSH :2222, sudo password, no root/password SSH, known-good AMI | Accountability + ability to **rebuild** from gold; **next:** Session Recording |
-| **3. Container skills gap** | Podman httpd + `container-fl-httpd.service` on :35443 | Ops manage the web container without copying long CLI; aligns Casey + Cameron |
+**Say:**
 
-**Say:**  
-> Challenge 1: stop the mixed-OS snowflake problem for **web** nodes — one gold AMI.  
-> Challenge 2: start with hardened, named access and a rebuildable baseline; Session Recording on Web Console is the natural day-2 for Ren’s audit trail.  
-> Challenge 3: containerized httpd is **service-managed**, so ops aren’t stuck on `podman` one-liners.
+> Anya — safer scale-out of the storefront.  
+> Alex — fewer snowflakes; reboot-safe services.  
+> Ren — hardened SSH, SELinux, minimal firewall.  
+> Casey — a standard you can enforce and rebuild.  
+> Cameron — containers ops can run without a war room.
 
-**Possibilities left open (Core Pack value summary):**  
-> Same blueprint can stretch to **Azure VHD**, OpenSCAP CIS (stretch), Insights-driven rebuilds, and fleet scale-out under Alex’s infra team.
+### Slide 13 — Recommended next step
 
----
+**Say:**
 
-## D. Closing (1–2 min) — slides 13–14
+> Concrete ask: **pilot this gold AMI on staging web nodes next sprint**.  
+> Casey validates day-2; Ren reviews SSH/SELinux.  
+> Then Web Console + Session Recording for audit.  
+> Automate rebuilds; Azure from the same blueprint when ready.
 
-**Core message:**  
-> One **manual RHEL 10 gold image** for Fedora Lane’s e-commerce web fleet — secure, standardized, and ops-manageable — proven live on AWS.
+### Slide 14 — Close
 
-**One concrete next step (pick one):**  
-> **Pilot this AMI on staging web nodes next sprint**, with Casey’s team validating day-2 ops (`systemctl` + firewall) and Ren reviewing the SSH/SELinux baseline — then decide Session Recording + Web Console for audit.
+**Say:**
 
-**Optional ask:**  
-> If useful, we can schedule a follow-up to walk OpenSCAP CIS hardening or an Azure image from the same TOML.
-
-**Thank them / invite questions.**
-
----
-
-## Q&A cheat sheet
-
-| Likely question | Short answer |
-|-----------------|--------------|
-| Why not hosted Image Builder? | Expansion Pack: create **manually** — we used **local** `image-builder` + TOML in Git. |
-| Why `rhel-10.0` not `rhel-10`? | Exact distro id from `image-builder list`; short id fails compose. |
-| Why import snapshot? | S3 holds a file; EC2 boots an **AMI** — import snapshot → register image (CLI or Console). |
-| Why ports 2222 / 35443? | Expansion Pack non-standard ports + SELinux port labels. |
-| Password SSH? | Disabled; keys only. Sudo still needs password. |
-| Azure? | Stretch: same TOML → `image-builder build vhd`; AWS proven today. |
-| OpenSCAP? | Stretch: `scap-security-guide` in blueprint; can demo scan next. |
-| Session recording? | Addresses Challenge 2 fully; recommended **next phase**, not required for gold image minimum. |
-
----
-
-## Expansion Pack checklist (say “done” only if proven)
-
-| # | Spec | Proven in walkthrough? |
-|---|------|------------------------|
-| 1 | Manual gold image (not hosted IB) | ☐ (mention TOML + local IB) |
-| 2 | Deployable on AWS (or Azure) | ☐ EC2 from AMI |
-| 3 | httpd + index; prefer container | ☐ curl :35443 + systemd unit |
-| 4 | Separate `/var/log` `/home` `/tmp` `/var/tmp` &lt; 5 GiB | ☐ findmnt |
-| 5a | SELinux enforcing | ☐ getenforce |
-| 5b | `/tmp` noexec | ☐ findmnt OPTIONS |
-| 5c | httpd :35443 | ☐ ss / curl |
-| 5d | SSH :2222 | ☐ ssh -p 2222 |
-| 5e | Admin users + group + sudo | ☐ fladmins |
-| 5f | sudo always password | ☐ sudo -k && sudo id |
-| 5g | No root SSH | ☐ sshd -T |
-| 5h | No password SSH | ☐ sshd -T |
-| 5i | Only SSH + httpd ports open | ☐ firewall-cmd |
-| 6 | Upload + provision + show config | ☐ live EC2 |
-| 7 | Survive reboot / enable at boot | ☐ optional reboot proof |
-
----
-
-## Success Criteria (Core Pack — Junior Consultant)
-
-Aim for **Meets / Exceeds**:
-
-- **Solution:** meets Expansion Pack specs; works live  
-- **Rationale:** explain **what + why** (esp. local IB, ports, systemd container)  
-- **Presentation:** logical flow; answer questions calmly; anticipate “why not hosted IB?” and “how does this help Casey?”
+> One gold image for Fedora Lane’s web fleet — secure, standardized, something ops can run. Proven live on AWS. Ready for your staging pilot.  
+> Questions?
 
 ---
 
 ## Script card (print / second screen)
 
 ```text
-OPEN (2)   3 challenges → gold AMI objective → agenda
-LIVE (8)   SSH 2222 → SELinux/mounts → sudo pw → firewall → httpd systemd :35443
-VALUE (3)  Challenge1 AMI | Challenge2 access+baseline | Challenge3 systemd container
-CLOSE (2)  Pilot staging next → Session Recording later → questions
+SLIDES 1–4   Opening: needs → 3 problems → agenda          (~2 min)
+SLIDES 5–10  Talk: config → solves → path to AWS           (~5 min)
+★ SLIDE 11   LIVE DEMO — switch to terminal NOW            (~6 min)
+             SSH 2222 → SELinux/mounts → sudo → firewall
+             → systemctl httpd :35443 → curl
+SLIDES 12–14 Stakeholder value → staging pilot → Q&A       (~2 min)
 ```
+
+---
+
+## Q&A cheat sheet
+
+| Question | Short answer |
+|----------|--------------|
+| Why not hosted Image Builder? | You own a reviewable TOML in Git — rebuildable, not a black box. |
+| Why port 2222 / 35443? | Non-standard ports + SELinux labels; smaller attack surface. |
+| Password SSH? | Disabled; keys only. Sudo still needs a password. |
+| Azure? | Same blueprint → `vhd`; AWS proven today. |
+| Session recording? | Natural next step for Challenge 2; recommend after staging pilot. |
+| Who maintains the image? | Casey’s team owns the blueprint; rebuild on a cadence + Insights later. |
+
+---
+
+## Live demo checklist (tick while on slide 11)
+
+| # | Prove | Command / show |
+|---|--------|----------------|
+| 1 | SSH :2222 key-only | `ssh -p 2222 fladmin1@…` |
+| 2 | RHEL 10 | `cat /etc/redhat-release` |
+| 3 | SELinux enforcing | `getenforce` |
+| 4 | Separate mounts + `/tmp noexec` | `findmnt …` |
+| 5 | fladmins + sudo password | `sudo -k && sudo id` |
+| 6 | Firewall 2222 + 35443 | `firewall-cmd --list-ports` |
+| 7 | httpd systemd + curl :35443 | `systemctl status` + `curl` |
+| 8 | (Optional) survives reboot | re-check after reboot |
