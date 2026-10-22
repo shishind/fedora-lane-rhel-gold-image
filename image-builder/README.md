@@ -93,37 +93,8 @@ sudo image-builder build vhd \
   --with-buildlog
 ```
 
-**Preferred — upload existing `.vhd` (creates managed image):**
-
-```bash
-sudo image-builder upload \
-  ./*.vhd \
-  --to=azure \
-  --azure-tenant "$AZ_TENANT" \
-  --azure-subscription "$AZ_SUB" \
-  --azure-client-id "$AZ_CLIENT_ID" \
-  --azure-client-secret "$AZ_CLIENT_SECRET" \
-  --azure-resource-group fedora-lane-gold-rg \
-  --azure-image-name fedora-lane-rhel10-gold \
-  --arch x86_64
-```
-
-**Build + upload to Azure in one command:**
-
-```bash
-sudo image-builder build vhd \
-  --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10.0 \
-  --azure-tenant "$AZ_TENANT" \
-  --azure-subscription "$AZ_SUB" \
-  --azure-client-id "$AZ_CLIENT_ID" \
-  --azure-client-secret "$AZ_CLIENT_SECRET" \
-  --azure-resource-group fedora-lane-gold-rg \
-  --azure-image-name fedora-lane-rhel10-gold
-```
-
-Needs a resource group + Azure service principal (see [15](15-azure-vhd-upload.md)).  
-Alternate: page-blob `az` upload → Gen2 image. Then NSG **2222**/**35443** → VM → SSH.
+**Preferred publish (RHEL 10 packages):** `az storage blob upload --type page` → `az image create` (Gen2) → NSG **2222**/**35443** → VM.  
+`--azure-*` on `image-builder upload` is often **missing** on RHEL 10 RPMs (`unknown flag: --azure-tenant`); use only if `upload --help` lists those flags. See [15](15-azure-vhd-upload.md).
 
 **Detailed Azure guide:** [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
 **Azure examples:** [16-azure-examples.md](16-azure-examples.md)

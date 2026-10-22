@@ -18,101 +18,11 @@ VHD build, page-blob upload, and image create still follow **Red Hat** docs.
 
 Do **not** commit storage account keys, service-principal secrets, `azure.toml`, or `.vhd` files to Git.
 
-## Preferred — `image-builder upload` / build with Azure flags
+## Preferred — build VHD, then `az` page-blob upload (RHEL 10 packages)
 
-Same idea as AWS: with a service principal and a resource group, **one command** uploads the VHD and registers a managed image in Azure.
-
-Flags match current `image-builder` (`image-builder upload --help` / `image-builder build --help`):
-
-| Flag | Purpose |
-|------|---------|
-| `--to=azure` | Target cloud (upload subcommand) |
-| `--azure-tenant` | Directory (tenant) ID |
-| `--azure-subscription` | Subscription ID |
-| `--azure-client-id` | App (client) ID of the service principal |
-| `--azure-client-secret` | Client secret |
-| `--azure-resource-group` | Existing resource group for the image |
-| `--azure-image-name` | Name of the managed image |
-| `--arch` | Optional; e.g. `x86_64` |
-
-```text
-[ image-builder build vhd  (+ optional --azure-* auto-upload) ]
-        ↓
-[ or: image-builder upload .vhd --to=azure --azure-* ]
-        ↓
-[ managed image in resource group ]
-        ↓
-[ NSG: TCP 2222 + 35443 → az vm create → SSH ]
-```
-
-### Service principal (once per resource group)
-
-```bash
-export AZ_LOCATION=eastus
-export AZ_RG=fedora-lane-gold-rg
-export AZ_IMAGE=fedora-lane-rhel10-gold
-
-az group create --name "$AZ_RG" --location "$AZ_LOCATION"
-
-export AZ_SUB=$(az account show --query id -o tsv)
-export AZ_TENANT=$(az account show --query tenantId -o tsv)
-
-# Creates an app + secret with Contributor on this RG only
-az ad sp create-for-rbac \
-  --name "fedora-lane-image-builder" \
-  --role Contributor \
-  --scopes "/subscriptions/${AZ_SUB}/resourceGroups/${AZ_RG}"
-# Note: appId → AZ_CLIENT_ID, password → AZ_CLIENT_SECRET, tenant → AZ_TENANT
-```
-
-Export the returned values (do not commit):
-
-```bash
-export AZ_CLIENT_ID="<appId>"
-export AZ_CLIENT_SECRET="<password>"
-# AZ_TENANT / AZ_SUB already set above
-```
-
-### Upload an existing `.vhd`
-
-```bash
-export VHD_FILE=./$(ls -1t ./*.vhd | head -1)
-
-sudo image-builder upload \
-  "$VHD_FILE" \
-  --to=azure \
-  --azure-tenant "$AZ_TENANT" \
-  --azure-subscription "$AZ_SUB" \
-  --azure-client-id "$AZ_CLIENT_ID" \
-  --azure-client-secret "$AZ_CLIENT_SECRET" \
-  --azure-resource-group "$AZ_RG" \
-  --azure-image-name "$AZ_IMAGE" \
-  --arch x86_64
-```
-
-### Build + upload in one step
-
-```bash
-sudo image-builder build vhd \
-  --blueprint ./fedora-lane-gold.toml \
-  --distro rhel-10.0 \
-  --azure-tenant "$AZ_TENANT" \
-  --azure-subscription "$AZ_SUB" \
-  --azure-client-id "$AZ_CLIENT_ID" \
-  --azure-client-secret "$AZ_CLIENT_SECRET" \
-  --azure-resource-group "$AZ_RG" \
-  --azure-image-name "$AZ_IMAGE" \
-  --with-buildlog
-```
-
-After the managed image exists → NSG **2222**/**35443** → VM → SSH (Parts 6–8 below).  
-Copy-paste sheet: [16-azure-examples.md](16-azure-examples.md)
-
----
-
-## Alternate — manual page-blob upload (`az`)
-
-Use if `image-builder upload --to=azure` is unavailable, or you must drive each Azure step yourself.
+On current RHEL 10 `image-builder` RPMs, `image-builder upload` supports **`--to=aws`** but typically **does not** have `--azure-*` flags yet (`unknown flag: --azure-tenant`).  
+Red Hat’s documented publish path is: compose **`vhd`** → upload as a **page** blob → `az image create`  
+([Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)).
 
 ```text
 [ image-builder build vhd → .vhd ]
@@ -125,6 +35,9 @@ Use if `image-builder upload --to=azure` is unavailable, or you must drive each 
         ↓
 [ NSG → VM → SSH ]
 ```
+
+Check your binary: `sudo image-builder upload --help` — if you see `--azure-tenant`, you can use the optional newer path at the end of this guide.  
+Copy-paste sheet: [16-azure-examples.md](16-azure-examples.md)
 
 ---
 
@@ -294,7 +207,7 @@ Check `sudo image-builder build --help` / `sudo image-builder upload --help` on 
 
 ---
 
-## Part 4 — Upload VHD as a **page** blob (manual alternate)
+## Part 4 — Upload VHD as a **page** blob
 
 Red Hat requires a **page** blob upload (`--type page`), not a block blob  
 ([Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)):
@@ -484,6 +397,7 @@ az vm delete --resource-group "$AZ_RG" --name "$AZ_VM" --yes --force-deletion tr
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
+| `unknown flag: --azure-tenant` (or other `--azure-*`) | RHEL 10 package lacks Azure upload flags | Use Parts 2–5 (`az` page blob + `az image create`). Optional newer path below only if `upload --help` lists `--azure-*` |
 | `cannot find image for distro:"rhel-10" type:"vhd"` | Wrong distro id | Use exact id from `image-builder list` (e.g. `rhel-10.0`) |
 | No space left on device during build | `/var` too small | Free **15–20+ GiB** on `/var` or enlarge the builder disk |
 | Blob upload fails / image create rejects VHD | Uploaded as **block** blob | Re-upload with `--type page` |
@@ -491,6 +405,30 @@ az vm delete --resource-group "$AZ_RG" --name "$AZ_VM" --yes --force-deletion tr
 | SSH refused / auth fail | Wrong key or user | Use `fladmin1` + key matching the TOML; wait for cloud-init |
 | httpd not answering | First-boot still running | Wait 2–5 min; `systemctl status container-fl-httpd` |
 | Portal “Generate new key pair” breaks login | Azure key ≠ blueprint key | Prefer “Use existing public key” = blueprint key |
+
+---
+
+## Optional — newer `image-builder` with `--azure-*` flags
+
+Only if `sudo image-builder upload --help` shows `--azure-tenant` (newer upstream / future RHEL packages).  
+Then you can push like AWS:
+
+```bash
+# Requires service principal + resource group (Contributor on the RG)
+sudo image-builder upload \
+  "$VHD_FILE" \
+  --to=azure \
+  --azure-tenant "$AZ_TENANT" \
+  --azure-subscription "$AZ_SUB" \
+  --azure-client-id "$AZ_CLIENT_ID" \
+  --azure-client-secret "$AZ_CLIENT_SECRET" \
+  --azure-resource-group "$AZ_RG" \
+  --azure-image-name "$AZ_IMAGE" \
+  --arch x86_64
+```
+
+Or the same `--azure-*` flags on `image-builder build vhd …`.  
+If help does **not** list those flags, stay on Parts 2–5.
 
 ---
 

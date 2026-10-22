@@ -109,8 +109,8 @@ ls -lh ./*.vhd
 
 Publish to Azure:
 
-**Preferred** — `image-builder upload … --to=azure` (or `build vhd` with `--azure-*` flags) → managed image → NSG → VM.  
-**Alternate** — page blob + `az image create`.
+**Preferred (RHEL 10 packages)** — page blob (`az storage blob upload --type page`) + `az image create` → NSG → VM.  
+**Optional** — `image-builder upload --to=azure` only if `upload --help` lists `--azure-*` (often missing; you get `unknown flag: --azure-tenant`).
 
 - Detailed: [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
 - Examples: [16-azure-examples.md](16-azure-examples.md)  
