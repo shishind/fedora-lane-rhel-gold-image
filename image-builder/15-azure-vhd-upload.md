@@ -54,18 +54,32 @@ sudo image-builder list --filter "type:vhd" --filter "distro:rhel-10*"
 
 Skip if `az version` already works.
 
-```bash
-sudo rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc
+**Use Microsoft’s RHEL 10 method** ([Install Azure CLI on Linux](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux)).  
+Do **not** hand-write a repo with  
+`…/yumrepos/packages.microsoft.com/rhel/10/prod/` — that path returns **404**.
 
+```bash
+# Remove a broken hand-made repo if you already created one
+sudo rm -f /etc/yum.repos.d/azure-cli.repo
+
+sudo rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc
+sudo dnf install -y https://packages.microsoft.com/config/rhel/10/packages-microsoft-prod.rpm
+sudo dnf clean all
+sudo dnf install -y azure-cli
+az version
+```
+
+If `dnf` still cannot find `azure-cli`, install from Microsoft’s dedicated azure-cli yum repo:
+
+```bash
 sudo tee /etc/yum.repos.d/azure-cli.repo >/dev/null <<'EOF'
 [azure-cli]
 name=Azure CLI
-baseurl=https://packages.microsoft.com/yumrepos/packages.microsoft.com/rhel/10/prod/
+baseurl=https://packages.microsoft.com/yumrepos/azure-cli
 enabled=1
 gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 EOF
-
 sudo dnf install -y azure-cli
 az version
 ```
@@ -74,7 +88,7 @@ Sign in (on a headless builder use device code):
 
 ```bash
 az login --use-device-code
-# open the URL in a browser, enter the code, pick the Fedora Lane subscription
+# open the URL in a browser, enter the code, pick your subscription
 
 az account show --output table
 # if wrong subscription:
