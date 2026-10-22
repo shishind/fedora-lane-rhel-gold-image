@@ -175,20 +175,37 @@ Wait 2–5 minutes after first boot for Podman/httpd.
 
 ## Phase D — Publish and launch on **Azure**
 
-### D1. Azure CLI login + storage
+### D1. Azure CLI + resource group + service principal
 
 Install `az` with Microsoft’s RHEL 10 method (RH chapter yum URL 404s) — see [15 Part 1](../image-builder/15-azure-vhd-upload.md).  
 Official VHD flow: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
 
 ```bash
 az login --use-device-code
-# create RG, storage account, container — see examples
+# create RG + service principal — see 15 (Preferred) / 16 §2
 ```
 
-→ [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md) Parts 1–2  
+→ [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md)  
 → [image-builder/16-azure-examples.md](../image-builder/16-azure-examples.md) §2
 
-### D2. Upload VHD as **page** blob → managed image (Gen2)
+### D2. Preferred: `image-builder upload --to=azure`
+
+```bash
+sudo image-builder upload \
+  "$VHD_FILE" \
+  --to=azure \
+  --azure-tenant "$AZ_TENANT" \
+  --azure-subscription "$AZ_SUB" \
+  --azure-client-id "$AZ_CLIENT_ID" \
+  --azure-client-secret "$AZ_CLIENT_SECRET" \
+  --azure-resource-group "$AZ_RG" \
+  --azure-image-name "$AZ_IMAGE" \
+  --arch x86_64
+```
+
+Or build + upload together with the same `--azure-*` flags on `image-builder build vhd …`.
+
+### D2b. Alternate: page blob → Gen2 managed image
 
 ```bash
 az storage blob upload ... --type page

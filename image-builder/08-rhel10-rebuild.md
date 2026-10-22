@@ -107,7 +107,10 @@ sudo image-builder build vhd \
 ls -lh ./*.vhd
 ```
 
-Publish to Azure (page blob → Gen2 image → NSG → VM):
+Publish to Azure:
+
+**Preferred** — `image-builder upload … --to=azure` (or `build vhd` with `--azure-*` flags) → managed image → NSG → VM.  
+**Alternate** — page blob + `az image create`.
 
 - Detailed: [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
 - Examples: [16-azure-examples.md](16-azure-examples.md)  

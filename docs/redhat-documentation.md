@@ -49,7 +49,8 @@ Use these in the README and solution overview when citing official Red Hat guida
 | Same chapter in Image Builder book | [Preparing and uploading VHD images to Microsoft Azure (composing guide)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) |
 | Build CLI (`image-builder build vhd`) | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
 
-Image type in Image Builder: **`vhd`**. Customer steps in this repo: [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md).
+Image type in Image Builder: **`vhd`**. Customer steps in this repo: [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md)  
+(**Preferred push:** `image-builder upload … --to=azure` with `--azure-*` flags — same idea as AWS `upload --to=aws`.)
 
 **Notes vs live RHEL 10 packages (keep our lab guides when RH text differs):**
 

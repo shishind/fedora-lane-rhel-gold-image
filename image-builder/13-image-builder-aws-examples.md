@@ -129,9 +129,15 @@ sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --with-buildlog
+
+# Preferred push (mirrors AWS upload):
+# sudo image-builder upload ./*.vhd --to=azure \
+#   --azure-tenant … --azure-subscription … \
+#   --azure-client-id … --azure-client-secret … \
+#   --azure-resource-group … --azure-image-name …
 ```
 
-Full Azure publish (page blob → image → NSG → VM):  
+Full Azure publish (`image-builder upload --to=azure` or page-blob alternate):  
 [15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
 
 ---

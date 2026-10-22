@@ -8,9 +8,10 @@ Same Fedora Lane blueprint as AWS. Replace names/region if yours differ.
 | Distro | **exact** id (e.g. `rhel-10.0`) |
 | Location | `eastus` |
 | Resource group | `fedora-lane-gold-rg` |
-| Storage account | unique lowercase name |
-| Container | `vhds` |
 | Image name | `fedora-lane-rhel10-gold` |
+| Tenant / subscription / SP | from `az account show` + `az ad sp create-for-rbac` |
+| Storage account | unique lowercase name (manual path only) |
+| Container | `vhds` (manual path only) |
 | VM name | `fedora-lane-gold-test` |
 | SSH | `fladmin1` on port **2222** |
 
@@ -64,7 +65,65 @@ export VHD_FILE=./$(ls -1t ./*.vhd | head -1)
 
 ---
 
-## 2) Create Azure storage (example names)
+## 2) Preferred — `image-builder upload` to Azure (managed image)
+
+Needs an existing resource group + service principal (Contributor on that RG).  
+Same pattern as AWS `image-builder upload --to=aws`.
+
+```bash
+export AZ_LOCATION=eastus
+export AZ_RG=fedora-lane-gold-rg
+export AZ_IMAGE=fedora-lane-rhel10-gold
+
+az group create --name "$AZ_RG" --location "$AZ_LOCATION"
+
+export AZ_SUB=$(az account show --query id -o tsv)
+export AZ_TENANT=$(az account show --query tenantId -o tsv)
+
+# one-time: create SP (save appId + password; do not commit)
+az ad sp create-for-rbac \
+  --name "fedora-lane-image-builder" \
+  --role Contributor \
+  --scopes "/subscriptions/${AZ_SUB}/resourceGroups/${AZ_RG}"
+
+export AZ_CLIENT_ID="<appId>"
+export AZ_CLIENT_SECRET="<password>"
+
+# Upload existing .vhd → managed image in $AZ_RG
+sudo image-builder upload \
+  "$VHD_FILE" \
+  --to=azure \
+  --azure-tenant "$AZ_TENANT" \
+  --azure-subscription "$AZ_SUB" \
+  --azure-client-id "$AZ_CLIENT_ID" \
+  --azure-client-secret "$AZ_CLIENT_SECRET" \
+  --azure-resource-group "$AZ_RG" \
+  --azure-image-name "$AZ_IMAGE" \
+  --arch x86_64
+```
+
+**Build + upload in one command:**
+
+```bash
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10.0 \
+  --azure-tenant "$AZ_TENANT" \
+  --azure-subscription "$AZ_SUB" \
+  --azure-client-id "$AZ_CLIENT_ID" \
+  --azure-client-secret "$AZ_CLIENT_SECRET" \
+  --azure-resource-group "$AZ_RG" \
+  --azure-image-name "$AZ_IMAGE" \
+  --with-buildlog
+```
+
+Then skip §3 and go to §4 (NSG + VM). Confirm flags on your host: `sudo image-builder upload --help`.
+
+---
+
+## 3) Alternate — create storage + page-blob upload (`az`)
+
+Use only if §2 is unavailable.
 
 ```bash
 export AZ_LOCATION=eastus
@@ -94,9 +153,7 @@ az storage container create \
 echo "STORAGE=$AZ_STORAGE KEY length=${#AZ_KEY}"
 ```
 
----
-
-## 3) Upload VHD as page blob → create Gen2 image
+### Upload VHD as page blob → create Gen2 image
 
 ```bash
 export BLOB_NAME="fedora-lane-rhel10-gold-$(date +%Y%m%d).vhd"
@@ -123,7 +180,7 @@ az image create \
 
 ---
 
-## 4) NSG + VM + SSH
+## 4) NSG + VM + SSH (after preferred or alternate image create)
 
 ```bash
 export MY_IP=$(curl -s https://ifconfig.me)/32
