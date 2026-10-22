@@ -23,14 +23,14 @@ notes.local.md
 *.ami
 images/
 
-# Presentation materials (keep local; do not commit)
+# Presentation materials (keep drafts local; customer deck is tracked)
 docs/presentation-outline.md
 docs/*-slides.md
 docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pdf
-docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx
 **/presentation-outline.md
 **/presentation-cheat-sheet.md
 *.pptx
+!docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx
 
 # OS / editor / tooling
 .DS_Store
