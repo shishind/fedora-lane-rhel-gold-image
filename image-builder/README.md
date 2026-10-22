@@ -93,9 +93,16 @@ sudo image-builder build vhd \
   --with-buildlog
 ```
 
-**Image Builder upload to Azure** (Red Hat): `azure.toml` +  
-`sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml`  
-(or `image-builder upload … --to=azure` only if `upload --help` lists `--azure-*`).  
+**Azure:** `image-builder upload` has **no Azure target** on RHEL 10 (`upload --help` = aws / ibmcloud / libvirt / openstack only).  
+Build the VHD with Image Builder, then follow RH for Azure publish:
+
+```bash
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10.0 \
+  --with-buildlog
+```
+
 See [15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
 
 ## Full rebuild guide

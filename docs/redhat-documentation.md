@@ -49,15 +49,13 @@ Use these in the README and solution overview when citing official Red Hat guida
 | Same chapter in Image Builder book | [Preparing and uploading VHD images to Microsoft Azure (composing guide)](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure) |
 | Build CLI (`image-builder build vhd`) | [Creating system images with the CLI](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/creating-system-images-with-cli) |
 
-Image type in Image Builder: **`vhd`**. Image Builder upload commands: [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md)
+Image type in Image Builder: **`vhd`**. Lab notes: [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md)
 
-**Image Builder Azure upload (this lab):**
+**RHEL 10 note:** `image-builder upload --help` supports **aws / ibmcloud / libvirt / openstack** — **not Azure**. For Azure, Image Builder only builds the VHD:
 
 ```bash
-sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml
+sudo image-builder build vhd --blueprint ./fedora-lane-gold.toml --distro rhel-10.0 --with-buildlog
 ```
-
-(`azure.toml` = Red Hat upload config. `upload --to=azure` only if your RPM’s `upload --help` lists `--azure-*`.)
 
 
 **Why it matters:** same TOML as AWS → Azure managed image → VM with NSG **2222**/**35443**.

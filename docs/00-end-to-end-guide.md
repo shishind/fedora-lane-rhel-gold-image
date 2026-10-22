@@ -175,24 +175,18 @@ Wait 2–5 minutes after first boot for Podman/httpd.
 
 ## Phase D — Publish and launch on **Azure**
 
-### D1. Image Builder upload to Azure
+### D1. Image Builder: build VHD (no Azure `upload` on RHEL 10)
 
-Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
-
-```bash
-# /tmp/azure.toml — storageAccount, storageAccessKey, container (never commit)
-sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml
-```
-
-Or, only if `sudo image-builder upload --help` lists `--azure-*`:
+`image-builder upload` does **not** support Azure on this package (`upload --help` has aws / ibmcloud / libvirt / openstack only).
 
 ```bash
-sudo image-builder upload "$VHD_FILE" --to=azure \
-  --azure-tenant … --azure-subscription … \
-  --azure-client-id … --azure-client-secret … \
-  --azure-resource-group … --azure-image-name …
+sudo image-builder build vhd \
+  --blueprint ./fedora-lane-gold.toml \
+  --distro rhel-10.0 \
+  --with-buildlog
 ```
 
+Publish the `.vhd` per [Red Hat Azure VHD chapter](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure).  
 → [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md) · [16-azure-examples.md](../image-builder/16-azure-examples.md)
 
 ---

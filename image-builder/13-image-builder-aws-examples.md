@@ -129,9 +129,7 @@ sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --with-buildlog
-
-# Image Builder Azure upload (RH):
-# sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml
+# Note: image-builder upload has no Azure target on RHEL 10 (aws/ibmcloud/libvirt/openstack only)
 ```
 
 [15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
