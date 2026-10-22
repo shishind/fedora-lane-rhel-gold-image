@@ -116,7 +116,8 @@ Reconnect, then re-run the same commands above. SSH, mounts, SELinux, firewall, 
 | Result | Meaning | Fix on this instance (then rebuild AMI later) |
 |--------|---------|-----------------------------------------------|
 | hostname is `ip-…compute.internal` | AWS cloud-init overwrote `fl-web-gold` | See hostname fix below |
-| `firewall-cmd --list-ports` empty | firewalld active but ports not in zone | See firewall fix below |
+| `firewall-cmd --list-ports` empty **without sudo** | Normal — run with `sudo` (or use updated `verify/verify.sh`) | Confirm with `sudo firewall-cmd --list-all` |
+| firewall still empty **with sudo** | ports not in the active zone | See firewall fix below |
 | `/etc/sudoers.d/fladmins` missing | sudo still works via `wheel`; fladmins file absent | See sudoers fix below |
 
 ### Hostname

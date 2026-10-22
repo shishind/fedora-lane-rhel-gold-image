@@ -83,9 +83,9 @@ else
   bad "PasswordAuthentication not disabled"
 fi
 
-# firewalld ports
+# firewalld ports (needs root — without sudo, --list-ports often returns empty)
 if command -v firewall-cmd >/dev/null 2>&1; then
-  PORTS=$(firewall-cmd --list-ports 2>/dev/null || true)
+  PORTS=$(sudo firewall-cmd --list-ports 2>/dev/null || true)
   info "firewall ports: ${PORTS:-<none>}"
   echo "$PORTS" | grep -q '2222/tcp' && ok "firewall allows 2222/tcp" || bad "firewall missing 2222/tcp"
   echo "$PORTS" | grep -q '35443/tcp' && ok "firewall allows 35443/tcp" || bad "firewall missing 35443/tcp"
@@ -98,9 +98,9 @@ else
   bad "group fladmins missing"
 fi
 
-# sudoers no NOPASSWD for fladmins
-if [[ -f /etc/sudoers.d/fladmins ]]; then
-  if grep -q NOPASSWD /etc/sudoers.d/fladmins; then
+# sudoers no NOPASSWD for fladmins (file is root:root 0440 — use sudo to read)
+if sudo test -f /etc/sudoers.d/fladmins; then
+  if sudo grep -q NOPASSWD /etc/sudoers.d/fladmins; then
     bad "fladmins sudoers contains NOPASSWD"
   else
     ok "fladmins sudoers has no NOPASSWD"
