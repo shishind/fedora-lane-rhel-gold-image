@@ -1,14 +1,11 @@
 # Presentation script — Fedora Lane RHEL 10 Gold Image
 
-**Role:** Junior Consultant (FASTER) · **TDP:** Server / Cloud OS  
-**Length:** ~15 minutes (Core Pack structure)  
-**Deck:** `docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx`  
-**Live proof:** EC2 launched from your gold AMI (not only the builder host)
+**Audience:** Fedora Lane leadership (Anya, Alex, Ren, Casey, Cameron)  
+**Length:** ~15 minutes  
+**Deck:** `docs/Fedora-Lane-RHEL-Gold-Image-FASTER.pptx` — **customer voice** (you / your)  
+**Live proof:** EC2 launched from the gold AMI
 
-Aligned to:
-
-- **Fedora Lane Core Pack** — Junior Consultant deliverables (opening → live walkthrough → value → closing)
-- **Expansion Pack — Server/Cloud OS TDP** — all three challenges + gold image specs
+Speak to the customer. Keep FASTER / pack language off the slides and out of the spoken opening.
 
 ---
 
@@ -41,32 +38,30 @@ Aligned to:
 
 ## A. Opening (1–2 min) — slides 1–4
 
-**Slide 2 — Customer needs (Core Pack):** estate size, hybrid cloud, PCI/GDPR/CCPA, 30-day CVE policy, least privilege, stakeholder needs (Anya / Alex / Casey / Ren / Cameron).
+**Slide 2 — What you need:** estate size, hybrid cloud, PCI/GDPR/CCPA, 30-day CVE policy, least privilege, what each of you needs.
 
 **Say:**
 
-> Hi, I’m **[Name]**, Red Hat Consultant. Thanks for the time today.  
+> Hi, I’m **[Name]**, Red Hat Consulting. Thanks for the time today.  
 >  
-> Fedora Lane is a global luxury retailer — boutiques plus a global **e-commerce** platform on **AWS**, with PCI DSS / GDPR pressure and a **30-day** Critical/High patch window. About **1,600** Linux servers across on-prem, AWS/Azure, and boutiques.  
+> You’re running a global luxury brand — boutiques plus e-commerce on **AWS** — under PCI DSS / GDPR and a **30-day** Critical/High patch window, across about **1,600** Linux servers.  
 >  
-> You’ve asked us to help with the **Linux web fleet**. From the Expansion Pack I understand **three** technical challenges — please confirm these still match:
+> You’ve asked us to help with the **web fleet**. We heard **three** problems — please confirm these still match:
 
-**Challenge 1 — Inconsistent server environment**  
-> About **1,600** servers — Rocky, Ubuntu, CentOS Stream, Amazon Linux — drift from regional autonomy. A critical patch **failed on 600+** hosts and you missed the 30-day window.
+**1 — Inconsistent servers**  
+> Mixed Rocky, Ubuntu, CentOS Stream, Amazon Linux — drift from regional autonomy. A critical patch **failed on 600+** hosts and you missed the 30-day window.
 
-**Challenge 2 — Untraceable admin changes / long outages**  
-> Undocumented interactive changes on production. No session audit trail → long MTTR (the “helpful timeout change” story).
+**2 — Hard-to-trace admin changes**  
+> Undocumented tweaks on production. When checkout fails, teams burn hours asking who changed what.
 
-**Challenge 3 — Ops skills gap for containers**  
-> Developers hand Casey’s team long `podman run` one-liners. Ops can’t manage containers cleanly → bottlenecks and misconfig risk.
+**3 — Containers outpace ops**  
+> Developers hand Casey’s team long `podman run` one-liners. Ops can’t manage containers cleanly.
 
 **Objective:**  
-> Today I’ll show a **manual RHEL 10 gold image** for the **e-commerce web** fleet — built with **local Image Builder** (not hosted), published as an **AWS AMI**, and proven on a live EC2 instance.
+> Today I’ll show a **RHEL 10 gold image** for your **e-commerce web** nodes — one standard you can rebuild, published as an **AWS AMI**, proven on a live instance.
 
 **Agenda:**  
-> Short architecture → live proof of the controls → how that maps to your three challenges → one recommended next step.
-
-*(If they nod, go to walkthrough. Don’t oversell — Junior Consultant = build + demonstrate.)*
+> Confirm your needs → show what’s in the image → how that solves your three problems → live proof → one next step.
 
 ---
 
