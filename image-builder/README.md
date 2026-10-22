@@ -93,11 +93,10 @@ sudo image-builder build vhd \
   --with-buildlog
 ```
 
-**Preferred publish (RHEL 10 packages):** `az storage blob upload --type page` → `az image create` (Gen2) → NSG **2222**/**35443** → VM.  
-`--azure-*` on `image-builder upload` is often **missing** on RHEL 10 RPMs (`unknown flag: --azure-tenant`); use only if `upload --help` lists those flags. See [15](15-azure-vhd-upload.md).
-
-**Detailed Azure guide:** [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
-**Azure examples:** [16-azure-examples.md](16-azure-examples.md)
+**Image Builder upload to Azure** (Red Hat): `azure.toml` +  
+`sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml`  
+(or `image-builder upload … --to=azure` only if `upload --help` lists `--azure-*`).  
+See [15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
 
 ## Full rebuild guide
 

@@ -107,14 +107,14 @@ sudo image-builder build vhd \
 ls -lh ./*.vhd
 ```
 
-Publish to Azure:
+Publish to Azure (Image Builder only):
 
-**Preferred (RHEL 10 packages)** — page blob (`az storage blob upload --type page`) + `az image create` → NSG → VM.  
-**Optional** — `image-builder upload --to=azure` only if `upload --help` lists `--azure-*` (often missing; you get `unknown flag: --azure-tenant`).
+```bash
+sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml
+```
 
-- Detailed: [15-azure-vhd-upload.md](15-azure-vhd-upload.md)  
-- Examples: [16-azure-examples.md](16-azure-examples.md)  
-- Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
+(`azure.toml` + details: [15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md))  
+Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
 
 ## 6) Gold image firewall note
 

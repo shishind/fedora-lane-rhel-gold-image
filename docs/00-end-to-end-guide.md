@@ -175,40 +175,25 @@ Wait 2–5 minutes after first boot for Podman/httpd.
 
 ## Phase D — Publish and launch on **Azure**
 
-### D1. Azure CLI + storage
+### D1. Image Builder upload to Azure
 
-Install `az` with Microsoft’s RHEL 10 method (RH chapter yum URL 404s) — see [15 Part 1](../image-builder/15-azure-vhd-upload.md).  
-Official VHD flow: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
-
-```bash
-az login --use-device-code
-# create RG + storage account + container — see 15 / 16 §2
-```
-
-→ [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md)  
-→ [image-builder/16-azure-examples.md](../image-builder/16-azure-examples.md) §2
-
-### D2. Preferred: page blob → Gen2 managed image (`az`)
-
-RHEL 10 `image-builder` usually lacks `--azure-*` (`unknown flag: --azure-tenant`). Use:
+Official: [Preparing and uploading VHD images to Microsoft Azure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/preparing-and-uploading-vhd-images-to-microsoft-azure)
 
 ```bash
-az storage blob upload ... --type page
-az image create ... --location "$AZ_LOCATION" --os-type Linux --hyper-v-generation V2 --source "$VHD_URL"
+# /tmp/azure.toml — storageAccount, storageAccessKey, container (never commit)
+sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml
 ```
 
-Optional: `image-builder upload --to=azure` only if `upload --help` lists `--azure-tenant`.
-
-### D3. NSG + VM
-
-NSG: TCP **2222** and **35443** from your IP.  
-VM: username `fladmin1`, SSH public key = blueprint key, size e.g. `Standard_D2s_v3`.
-
-### D4. SSH
+Or, only if `sudo image-builder upload --help` lists `--azure-*`:
 
 ```bash
-ssh -i ~/.ssh/fedora-lane-lab -p 2222 fladmin1@<PUBLIC_IP>
+sudo image-builder upload "$VHD_FILE" --to=azure \
+  --azure-tenant … --azure-subscription … \
+  --azure-client-id … --azure-client-secret … \
+  --azure-resource-group … --azure-image-name …
 ```
+
+→ [image-builder/15-azure-vhd-upload.md](../image-builder/15-azure-vhd-upload.md) · [16-azure-examples.md](../image-builder/16-azure-examples.md)
 
 ---
 

@@ -124,16 +124,17 @@ sudo image-builder upload ./*-ami-*.raw \
 ## 4) Azure (same blueprint) — see dedicated guides
 
 ```bash
-df -h /var   # ≥ 15–20 GiB free
+df -h /var
 sudo image-builder build vhd \
   --blueprint ./fedora-lane-gold.toml \
   --distro rhel-10.0 \
   --with-buildlog
-# Then publish with az page-blob upload (RHEL 10 packages lack --azure-*):
-# see 15-azure-vhd-upload.md / 16-azure-examples.md §2
+
+# Image Builder Azure upload (RH):
+# sudo image-builder build ./fedora-lane-gold.toml vhd fedora-lane-rhel10-gold /tmp/azure.toml
 ```
 
-Full Azure publish: [15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
+[15-azure-vhd-upload.md](15-azure-vhd-upload.md) · [16-azure-examples.md](16-azure-examples.md)
 
 ---
 
